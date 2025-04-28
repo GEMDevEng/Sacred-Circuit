@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Your Sacred Healing Journey</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      background-color: #6A9BD8;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      padding: 20px;
+      background-color: #F5F5DC;
+      border-radius: 0 0 8px 8px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      margin-top: 20px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #6A9BD8;
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .healing-name {
+      font-weight: bold;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome to Your Sacred Healing Journey</h1>
+  </div>
+  
+  <div class="content">
+    <p>Dear <span class="healing-name">{{healingName}}</span>,</p>
+    
+    <p>Welcome to the Sacred Healing Companion & Journey Hub. We're honored that you've chosen to embark on this healing journey with us.</p>
+    
+    <p>Your journey begins now, and we're here to support you every step of the way. Here's what you can expect:</p>
+    
+    <ul>
+      <li>Daily guidance emails with spiritual wisdom and practical tips</li>
+      <li>Access to your personal Sacred Healing Companion chatbot</li>
+      <li>Opportunities to reflect on your journey at key milestones</li>
+    </ul>
+    
+    <p>To start your conversation with your Sacred Healing Companion, simply click the button below:</p>
+    
+    <p style="text-align: center;">
+      <a href="{{chatbotUrl}}" class="button">Begin Your Conversation</a>
+    </p>
+    
+    <p>Remember, this is your unique journey. Listen to your body, honor your intuition, and approach each day with self-compassion.</p>
+    
+    <p>With heart-centered support,</p>
+    <p>The Sacred Healing Team</p>
+  </div>
+  
+  <div class="footer">
+    <p>This email was sent to you because you signed up for the Sacred Healing Journey.</p>
+    <p>If you no longer wish to receive these emails, you can <a href="{{unsubscribeUrl}}">unsubscribe here</a>.</p>
+  </div>
+</body>
+</html>

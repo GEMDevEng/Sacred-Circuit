@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time for Reflection on Your Sacred Healing Journey</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      background-color: #6A9BD8;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      padding: 20px;
+      background-color: #F5F5DC;
+      border-radius: 0 0 8px 8px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      margin-top: 20px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #6A9BD8;
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .healing-name {
+      font-weight: bold;
+      font-style: italic;
+    }
+    .quote {
+      font-style: italic;
+      border-left: 3px solid #6A9BD8;
+      padding-left: 15px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Day {{journeyDay}}: Time for Reflection</h1>
+  </div>
+  
+  <div class="content">
+    <p>Dear <span class="healing-name">{{healingName}}</span>,</p>
+    
+    <p>You've reached an important milestone in your healing journey - Day {{journeyDay}}!</p>
+    
+    <p>This is a perfect moment to pause and reflect on your experiences so far. Reflection helps us integrate our learnings, acknowledge our growth, and set intentions for the path ahead.</p>
+    
+    <div class="quote">
+      "The journey of healing happens one conscious breath at a time. Each moment of reflection is a sacred opportunity to honor how far you've come." 
+    </div>
+    
+    <p>We invite you to consider these reflection questions:</p>
+    
+    <ul>
+      <li>What has been the most meaningful insight you've gained so far?</li>
+      <li>How has your relationship with yourself shifted during this journey?</li>
+      <li>What challenges have you faced, and how have you navigated them?</li>
+      <li>What are you grateful for at this stage of your journey?</li>
+    </ul>
+    
+    <p>To share your reflections, simply click the button below:</p>
+    
+    <p style="text-align: center;">
+      <a href="{{reflectionUrl}}" class="button">Share Your Reflection</a>
+    </p>
+    
+    <p>Your reflections are private and will only be used to support your personal healing journey.</p>
+    
+    <p>With heart-centered support,</p>
+    <p>The Sacred Healing Team</p>
+  </div>
+  
+  <div class="footer">
+    <p>This email was sent to you because you signed up for the Sacred Healing Journey.</p>
+    <p>If you no longer wish to receive these emails, you can <a href="{{unsubscribeUrl}}">unsubscribe here</a>.</p>
+  </div>
+</body>
+</html>
