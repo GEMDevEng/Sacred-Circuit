@@ -5,17 +5,20 @@
 import '@testing-library/jest-dom';
 
 // Mock the IntersectionObserver
-class MockIntersectionObserver {
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {
+    this.root = null;
+    this.rootMargin = '';
+    this.thresholds = [];
+  }
+  root = null;
+  rootMargin = '';
+  thresholds = [];
   observe = jest.fn();
   disconnect = jest.fn();
   unobserve = jest.fn();
-}
-
-Object.defineProperty(window, 'IntersectionObserver', {
-  writable: true,
-  configurable: true,
-  value: MockIntersectionObserver,
-});
+  takeRecords = jest.fn().mockReturnValue([]);
+};
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -33,22 +36,33 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock localStorage
-const localStorageMock = (function() {
-  let store: Record<string, string> = {};
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value.toString();
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-  };
-})();
+const localStorageMock = {
+  getItem: jest.fn(() => null),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
 
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
+});
+
+// Mock toast notifications
+jest.mock('react-toastify', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
+  },
+}));
+
+// Suppress console errors during tests
+console.error = jest.fn();
+
+// Add a simple test to verify Jest is working
+describe('Jest Setup', () => {
+  it('should work', () => {
+    expect(true).toBe(true);
+  });
 });

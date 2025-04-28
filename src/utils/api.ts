@@ -1,9 +1,14 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+// Get API URL from environment or use default
+const API_URL = typeof process !== 'undefined' && process.env && process.env.VITE_API_URL
+  ? process.env.VITE_API_URL
+  : 'http://localhost:3001/api';
+
 // Create an Axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: API_URL,
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',

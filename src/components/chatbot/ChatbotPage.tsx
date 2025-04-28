@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import PageTransition from '../common/PageTransition';
 import Button from '../common/Button';
-import { sendChatMessage, ChatRequest, ChatResponse } from '../../utils/api';
+import { sendChatMessage, ChatRequest } from '../../utils/api';
 
 interface Message {
   id: string;
