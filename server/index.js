@@ -4,11 +4,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 // Routes
 import chatRoutes from './routes/chat.js';
 import reflectionRoutes from './routes/reflection.js';
 import webhookRoutes from './routes/webhook.js';
+import authRoutes from './routes/auth.js';
 
 // Middleware
 import { rateLimit } from './middleware/security.js';
@@ -43,6 +45,7 @@ app.use(cors({
 // Request parsing middleware
 app.use(express.json({ limit: '1mb' })); // Limit payload size
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(cookieParser()); // Parse cookies
 
 // Global rate limiting for all API routes
 app.use('/api', rateLimit({
@@ -59,6 +62,7 @@ app.use((err, req, res, next) => {
 });
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reflection', reflectionRoutes);
 app.use('/api/webhook', webhookRoutes);

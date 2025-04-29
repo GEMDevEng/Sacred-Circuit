@@ -20,10 +20,62 @@ const api = axios.create({
   },
 });
 
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+
+    // If token exists, add it to the headers
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If error is 401 (Unauthorized) and not a retry
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to refresh the token
+        const response = await axios.post(`${API_URL}/auth/refresh`);
+
+        if (response.data.success && response.data.data?.accessToken) {
+          // Store the new token
+          localStorage.setItem('token', response.data.data.accessToken);
+
+          // Update the Authorization header
+          originalRequest.headers.Authorization = `Bearer ${response.data.data.accessToken}`;
+
+          // Retry the original request
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // If refresh fails, redirect to login
+        console.error('Token refresh failed:', refreshError);
+
+        // Clear token and redirect to login
+        localStorage.removeItem('token');
+
+        // If we're in a browser environment, redirect to login
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+      }
+    }
+
     // Handle common errors
     if (error.response) {
       // Server responded with an error status
@@ -35,6 +87,7 @@ api.interceptors.response.use(
       // Error in setting up the request
       console.error('API Error:', error.message);
     }
+
     return Promise.reject(error);
   }
 );
@@ -134,6 +187,121 @@ export const submitReflection = async (data: ReflectionRequest): Promise<void> =
   } catch (error) {
     console.error('Error submitting reflection:', error);
     toast.error('Failed to submit reflection. Please try again.');
+    throw error;
+  }
+};
+
+/**
+ * Authentication interfaces
+ */
+export interface RegisterRequest {
+  healingName: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  user: {
+    id: string;
+    healingName: string;
+    email: string;
+    role: string;
+  };
+  accessToken: string;
+}
+
+/**
+ * Registers a new user
+ *
+ * @param data - The registration data
+ * @returns A promise resolving to the authentication response
+ */
+export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
+  try {
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data);
+
+    if (response.data.success && response.data.data) {
+      // Store token in localStorage
+      localStorage.setItem('token', response.data.data.accessToken);
+      localStorage.setItem('healingName', response.data.data.user.healingName);
+
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error || 'Registration failed');
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Logs in a user
+ *
+ * @param data - The login data
+ * @returns A promise resolving to the authentication response
+ */
+export const login = async (data: LoginRequest): Promise<AuthResponse> => {
+  try {
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', data);
+
+    if (response.data.success && response.data.data) {
+      // Store token in localStorage
+      localStorage.setItem('token', response.data.data.accessToken);
+      localStorage.setItem('healingName', response.data.data.user.healingName);
+
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error || 'Login failed');
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Logs out the current user
+ */
+export const logout = async (): Promise<void> => {
+  try {
+    await api.post('/auth/logout');
+
+    // Clear token from localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('healingName');
+  } catch (error) {
+    console.error('Logout error:', error);
+
+    // Clear token from localStorage even if API call fails
+    localStorage.removeItem('token');
+    localStorage.removeItem('healingName');
+
+    throw error;
+  }
+};
+
+/**
+ * Gets the current user
+ *
+ * @returns A promise resolving to the user data
+ */
+export const getCurrentUser = async () => {
+  try {
+    const response = await api.get<ApiResponse<{ user: any }>>('/auth/me');
+
+    if (response.data.success && response.data.data) {
+      return response.data.data.user;
+    } else {
+      throw new Error(response.data.error || 'Failed to get user data');
+    }
+  } catch (error) {
+    console.error('Get current user error:', error);
     throw error;
   }
 };
