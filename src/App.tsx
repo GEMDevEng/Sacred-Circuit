@@ -17,6 +17,9 @@ import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 
+// Profile pages
+import { ProfilePage } from './components/profile';
+
 function App() {
   return (
     <AuthProvider>
@@ -47,6 +50,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ReflectionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />
