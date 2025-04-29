@@ -19,13 +19,10 @@ const reflectionsTable = base('Reflections');
  */
 export async function saveReflection(reflectionData) {
   try {
-    const { healingName, reflectionText, journeyDay, emailConsent } = reflectionData;
+    const { healingName, reflectionText, journeyDay, emailConsent, userId } = reflectionData;
 
-    // Check if user exists
-    const user = await findUserByHealingName(healingName);
-
-    // Create reflection record with safe user linking
-    const reflectionData = {
+    // Create reflection record
+    const reflectionRecord = {
       'Healing Name': healingName,
       'Reflection Text': reflectionText,
       'Journey Day': journeyDay,
@@ -33,12 +30,19 @@ export async function saveReflection(reflectionData) {
       'Email Consent': emailConsent
     };
 
-    // Only add user reference if user exists and has an id
-    if (user && user.id) {
-      reflectionData['User'] = [user.id];
+    // If userId is provided directly, use it
+    if (userId) {
+      reflectionRecord['User'] = [userId];
+    }
+    // Otherwise, check if user exists by healing name
+    else if (!userId) {
+      const user = await findUserByHealingName(healingName);
+      if (user && user.id) {
+        reflectionRecord['User'] = [user.id];
+      }
     }
 
-    const reflection = await reflectionsTable.create(reflectionData);
+    const reflection = await reflectionsTable.create(reflectionRecord);
 
     return {
       id: reflection.id,
@@ -50,6 +54,62 @@ export async function saveReflection(reflectionData) {
   } catch (error) {
     console.error('Airtable error:', error);
     throw new Error('Failed to save reflection');
+  }
+}
+
+/**
+ * Get reflections by healing name
+ * @param {string} healingName - The user's healing name
+ * @returns {Promise<Array>} - Array of reflection records
+ */
+export async function getReflectionsByHealingName(healingName) {
+  try {
+    // Query reflections by healing name
+    const records = await reflectionsTable.select({
+      filterByFormula: `{Healing Name} = '${healingName}'`,
+      sort: [{ field: 'Timestamp', direction: 'desc' }],
+      maxRecords: 100
+    }).firstPage();
+
+    // Format the records
+    return records.map(record => ({
+      id: record.id,
+      healingName: record.fields['Healing Name'],
+      content: record.fields['Reflection Text'],
+      journeyDay: record.fields['Journey Day'],
+      timestamp: record.fields['Timestamp']
+    }));
+  } catch (error) {
+    console.error('Airtable error:', error);
+    throw new Error('Failed to retrieve reflections');
+  }
+}
+
+/**
+ * Get reflections by healing name
+ * @param {string} healingName - The user's healing name
+ * @returns {Promise<Array>} - Array of reflection records
+ */
+export async function getReflectionsByHealingName(healingName) {
+  try {
+    // Query reflections by healing name
+    const records = await reflectionsTable.select({
+      filterByFormula: `{Healing Name} = '${healingName}'`,
+      sort: [{ field: 'Timestamp', direction: 'desc' }],
+      maxRecords: 100
+    }).firstPage();
+
+    // Format the records
+    return records.map(record => ({
+      id: record.id,
+      healingName: record.fields['Healing Name'],
+      content: record.fields['Reflection Text'],
+      journeyDay: record.fields['Journey Day'],
+      timestamp: record.fields['Timestamp']
+    }));
+  } catch (error) {
+    console.error('Airtable error:', error);
+    throw new Error('Failed to retrieve reflections');
   }
 }
 

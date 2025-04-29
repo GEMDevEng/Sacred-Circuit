@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import Airtable from 'airtable';
 
 dotenv.config();
 
@@ -8,9 +9,17 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Initialize Airtable for conversation storage
+Airtable.configure({
+  apiKey: process.env.AIRTABLE_API_KEY,
+});
+
+const base = Airtable.base(process.env.AIRTABLE_BASE_ID);
+const conversationsTable = base('Conversations');
+
 // System prompt for the spiritual guidance chatbot
 const SYSTEM_PROMPT = `
-You are a compassionate spiritual guide for the Sacred Healing Companion & Journey Hub. 
+You are a compassionate spiritual guide for the Sacred Healing Companion & Journey Hub.
 Your purpose is to provide heart-centered guidance to users on their healing journeys.
 
 Guidelines:
@@ -33,28 +42,40 @@ The user will interact with you using their "Healing Name" - a pseudonym they've
  * @param {string} message - The user's message
  * @param {string} healingName - The user's healing name
  * @param {boolean} storeConversation - Whether to store the conversation
+ * @param {string} [userId] - Optional user ID for authenticated users
  * @returns {Promise<Object>} - The AI response
  */
-export async function processChat(message, healingName, storeConversation = false) {
+export async function processChat(message, healingName, storeConversation = false, userId = null) {
   try {
     // Create conversation context
     const userIdentifier = healingName || 'Seeker';
-    
+
+    // Create messages array with system prompt
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: `${userIdentifier}: ${message}` }
+    ];
+
+    // Add user ID to system message if available (for authenticated users)
+    if (userId) {
+      messages[0].content += `\nThis user is authenticated with ID: ${userId}`;
+    }
+
+    // Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `${userIdentifier}: ${message}` }
-      ],
+      messages: messages,
       temperature: 0.7,
       max_tokens: 500,
+      // Enable Zero Data Retention if user doesn't consent to storage
+      user: !storeConversation ? `zdr_${Date.now()}` : undefined
     });
-    
-    // If user doesn't consent to storage, don't save the conversation
+
+    // Log consent status
     if (!storeConversation) {
       console.log('User opted out of conversation storage (Zero Data Retention)');
     }
-    
+
     return {
       message: response.choices[0].message.content,
       timestamp: new Date().toISOString()
@@ -62,5 +83,47 @@ export async function processChat(message, healingName, storeConversation = fals
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw new Error('Failed to process chat message');
+  }
+}
+
+/**
+ * Store a conversation in Airtable
+ * @param {Object} conversationData - The conversation data
+ * @param {string} conversationData.healingName - The user's healing name
+ * @param {string} conversationData.userMessage - The user's message
+ * @param {string} conversationData.aiResponse - The AI's response
+ * @param {string} conversationData.timestamp - The timestamp
+ * @param {string} [conversationData.userId] - Optional user ID reference
+ * @returns {Promise<Object>} - The stored conversation
+ */
+export async function storeConversation(conversationData) {
+  try {
+    const { healingName, userMessage, aiResponse, timestamp, userId } = conversationData;
+
+    // Create conversation record
+    const conversationRecord = {
+      'Healing Name': healingName,
+      'User Message': userMessage,
+      'AI Response': aiResponse,
+      'Timestamp': timestamp || new Date().toISOString(),
+      'Consent Given': true
+    };
+
+    // Add user reference if available
+    if (userId) {
+      conversationRecord['User'] = [userId];
+    }
+
+    // Store in Airtable
+    const record = await conversationsTable.create(conversationRecord);
+
+    return {
+      id: record.id,
+      timestamp: record.fields['Timestamp'],
+      success: true
+    };
+  } catch (error) {
+    console.error('Failed to store conversation:', error);
+    throw new Error('Failed to store conversation');
   }
 }
