@@ -12,7 +12,9 @@
     "start": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:server": "jest --testPathPattern=server/",
+    "test:client": "jest --testPathPattern=src/"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -27,7 +29,9 @@
     "dotenv": "^16.3.1",
     "airtable": "^0.12.2",
     "openai": "^4.28.0",
-    "mailchimp-api-v3": "^1.15.0"
+    "mailchimp-api-v3": "^1.15.0",
+    "helmet": "^7.1.0",
+    "supertest": "^6.3.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

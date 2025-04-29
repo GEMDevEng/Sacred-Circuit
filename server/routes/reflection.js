@@ -1,5 +1,7 @@
 import express from 'express';
 import { saveReflection } from '../services/airtableService.js';
+import { validateRequest, reflectionRequestSchema } from '../middleware/validation.js';
+import { sendSuccessResponse, handleAndSendError } from '../utils/response-utils.js';
 
 const router = express.Router();
 
@@ -8,34 +10,20 @@ const router = express.Router();
  * @desc Save a user reflection
  * @access Public
  */
-router.post('/', async (req, res) => {
+router.post('/', validateRequest(reflectionRequestSchema), async (req, res) => {
   try {
-    const { healingName, reflectionText, journeyDay, emailConsent } = req.body;
-    
-    if (!healingName || !reflectionText) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Healing name and reflection text are required' 
-      });
-    }
-    
+    const { healingName, content, milestone, emailConsent = false } = req.body;
+
     const reflection = await saveReflection({
       healingName,
-      reflectionText,
-      journeyDay: journeyDay || 'Not specified',
-      emailConsent: emailConsent || false
+      reflectionText: content,
+      journeyDay: milestone || 'Not specified',
+      emailConsent
     });
-    
-    return res.status(201).json({
-      success: true,
-      data: reflection
-    });
+
+    return sendSuccessResponse(res, reflection, 201);
   } catch (error) {
-    console.error('Reflection error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Error saving reflection'
-    });
+    return handleAndSendError(res, error);
   }
 });
 

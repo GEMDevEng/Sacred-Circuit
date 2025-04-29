@@ -1,5 +1,7 @@
 import express from 'express';
 import { processChat } from '../services/openaiService.js';
+import { validateRequest, chatRequestSchema } from '../middleware/validation.js';
+import { sendSuccessResponse, handleAndSendError } from '../utils/response-utils.js';
 
 const router = express.Router();
 
@@ -8,29 +10,15 @@ const router = express.Router();
  * @desc Process a chat message and get a response
  * @access Public
  */
-router.post('/', async (req, res) => {
+router.post('/', validateRequest(chatRequestSchema), async (req, res) => {
   try {
-    const { message, healingName, storeConversation } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Message is required' 
-      });
-    }
-    
+    const { message, healingName, storeConversation = false } = req.body;
+
     const response = await processChat(message, healingName, storeConversation);
-    
-    return res.status(200).json({
-      success: true,
-      data: response
-    });
+
+    return sendSuccessResponse(res, response);
   } catch (error) {
-    console.error('Chat error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Error processing chat message'
-    });
+    return handleAndSendError(res, error);
   }
 });
 

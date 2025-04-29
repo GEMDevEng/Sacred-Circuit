@@ -1,5 +1,8 @@
 import express from 'express';
 import { processTypeformSubmission } from '../services/airtableService.js';
+import { validateRequest, webhookRequestSchema } from '../middleware/validation.js';
+import { verifyTypeformSignature, rateLimit } from '../middleware/security.js';
+import { sendSuccessResponse, handleAndSendError } from '../utils/response-utils.js';
 
 const router = express.Router();
 
@@ -8,31 +11,23 @@ const router = express.Router();
  * @desc Process Typeform webhook for new user registrations
  * @access Public
  */
-router.post('/typeform', async (req, res) => {
-  try {
-    const formData = req.body;
-    
-    if (!formData || !formData.form_response) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid webhook data' 
+router.post('/typeform',
+  rateLimit({ maxRequests: 10, windowMs: 60 * 1000 }), // 10 requests per minute
+  verifyTypeformSignature(),
+  validateRequest(webhookRequestSchema),
+  async (req, res) => {
+    try {
+      // Process the Typeform submission
+      const result = await processTypeformSubmission(req.body.form_response);
+
+      return sendSuccessResponse(res, {
+        message: 'Webhook processed successfully',
+        user: result
       });
+    } catch (error) {
+      return handleAndSendError(res, error);
     }
-    
-    // Process the Typeform submission
-    await processTypeformSubmission(formData.form_response);
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Webhook processed successfully'
-    });
-  } catch (error) {
-    console.error('Webhook error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Error processing webhook'
-    });
   }
-});
+);
 
 export default router;
