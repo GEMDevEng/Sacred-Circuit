@@ -5,7 +5,10 @@ import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import PageTransition from '../common/PageTransition';
 import Button from '../common/Button';
+import { Checkbox } from '../common/form';
+import { FormInput, FormTextarea, FormSelect } from '../common/form';
 import { submitReflection, ReflectionRequest } from '../../utils/api';
+import SentryErrorBoundary from '../common/SentryErrorBoundary';
 
 const ReflectionPage = () => {
   const [healingName, setHealingName] = useState('');
@@ -120,96 +123,73 @@ const ReflectionPage = () => {
                 </div>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6">
-                <div className="mb-6">
-                  <label htmlFor="healingName" className="block text-sm font-medium text-neutral-700 mb-1">
-                    Healing Name
-                  </label>
-                  <input
-                    type="text"
+              <SentryErrorBoundary>
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
+                  <FormInput
+                    label="Healing Name"
                     id="healingName"
                     value={healingName}
                     onChange={(e) => setHealingName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Enter your healing name"
                     maxLength={50}
-                    aria-required="true"
+                    required
+                    helperText="This is the name you use throughout your healing journey"
                   />
-                </div>
 
-                <div className="mb-6">
-                  <label htmlFor="milestone" className="block text-sm font-medium text-neutral-700 mb-1">
-                    Milestone
-                  </label>
-                  <select
+                  <FormSelect
+                    label="Milestone"
                     id="milestone"
                     value={milestone}
-                    onChange={(e) => setMilestone(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    aria-required="true"
-                  >
-                    <option value="Day 7">Day 7</option>
-                    <option value="Day 14">Day 14</option>
-                    <option value="Day 21">Day 21</option>
-                    <option value="Day 30">Day 30</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+                    onChange={(value) => setMilestone(value)}
+                    required
+                    options={[
+                      { value: 'Day 7', label: 'Day 7' },
+                      { value: 'Day 14', label: 'Day 14' },
+                      { value: 'Day 21', label: 'Day 21' },
+                      { value: 'Day 30', label: 'Day 30' },
+                      { value: 'Other', label: 'Other' }
+                    ]}
+                  />
 
-                <div className="mb-6">
-                  <label htmlFor="reflection" className="block text-sm font-medium text-neutral-700 mb-1">
-                    Your Reflection
-                  </label>
-                  <textarea
+                  <FormTextarea
+                    label="Your Reflection"
                     id="reflection"
                     value={reflection}
                     onChange={(e) => setReflection(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                     placeholder="Share your thoughts, feelings, and insights from your healing journey so far..."
                     rows={8}
                     maxLength={5000}
-                    aria-required="true"
+                    required
+                    showCount
                   />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    {reflection.length}/5000 characters
-                  </p>
-                </div>
 
-                <div className="mb-6">
-                  <label className="flex items-center text-sm text-neutral-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={emailConsent}
-                      onChange={(e) => setEmailConsent(e.target.checked)}
-                      className="mr-2 h-4 w-4 text-primary focus:ring-primary rounded"
-                    />
-                    I consent to receive occasional emails with guidance and reflection prompts
-                  </label>
-                </div>
+                  <Checkbox
+                    label="I consent to receive occasional emails with guidance and reflection prompts"
+                    id="emailConsent"
+                    checked={emailConsent}
+                    onChange={(e) => setEmailConsent(e.target.checked)}
+                    containerClassName="mb-8"
+                  />
 
                 <div className="text-center">
                   <Button
                     type="submit"
                     variant="primary"
                     disabled={isSubmitting}
-                    icon={isSubmitting ? undefined : <Send size={18} />}
+                    isLoading={isSubmitting}
+                    icon={!isSubmitting ? <Send size={18} /> : undefined}
+                    iconPosition="right"
                     aria-label="Submit Reflection"
                   >
-                    {isSubmitting ? (
-                      <>
-                        <span className="mr-2">Submitting</span>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      </>
-                    ) : (
-                      'Submit Reflection'
-                    )}
+                    {isSubmitting ? 'Submitting...' : 'Submit Reflection'}
                   </Button>
                 </div>
 
-                <p className="mt-6 text-xs text-neutral-500 text-center">
+                <p className="mt-8 text-xs text-neutral-500 dark:text-neutral-400 text-center">
                   Your reflection will be stored using only your healing name to preserve your privacy.
                 </p>
               </form>
+              </SentryErrorBoundary>
             )}
           </div>
         </div>

@@ -4,8 +4,10 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import useForm from '../../hooks/useForm';
 import { validateRequired, validateEmail } from '../../utils/validators';
-import { Form, Input } from '../common/form';
+import { Form } from '../common/form';
+import { FormInput } from '../common/form';
 import Button from '../common/Button';
+import SentryErrorBoundary from '../common/SentryErrorBoundary';
 
 interface LoginFormValues {
   email: string;
@@ -54,66 +56,70 @@ const LoginForm = () => {
   });
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-serif text-primary-600 mb-6 text-center">
+    <div className="max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+      <h2 className="text-2xl font-serif text-primary-600 dark:text-primary-400 mb-6 text-center">
         Welcome Back
       </h2>
-      
-      <Form
-        onSubmit={handleSubmit}
-        error={formError}
-        isLoading={isSubmitting}
-        className="space-y-4"
-      >
-        <Input
-          label="Email"
-          name="email"
-          type="email"
-          value={values.email}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.email ? errors.email : undefined}
-          required
-          autoComplete="email"
-        />
-        
-        <Input
-          label="Password"
-          name="password"
-          type="password"
-          value={values.password}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.password ? errors.password : undefined}
-          required
-          autoComplete="current-password"
-        />
-        
-        <div className="flex justify-between items-center text-sm">
-          <Link to="/forgot-password" className="text-primary-600 hover:underline">
-            Forgot password?
-          </Link>
-        </div>
-        
-        <Button
-          type="submit"
-          variant="primary"
-          fullWidth
-          disabled={isSubmitting}
-          className="mt-6"
+
+      <SentryErrorBoundary>
+        <Form
+          onSubmit={handleSubmit}
+          error={formError}
+          isLoading={isSubmitting}
+          className="space-y-4"
         >
-          {isSubmitting ? 'Logging in...' : 'Log In'}
-        </Button>
-        
-        <div className="text-center mt-4">
-          <p className="text-neutral-600 text-sm">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary-600 hover:underline">
-              Register
+          <FormInput
+            label="Email"
+            id="email"
+            name="email"
+            type="email"
+            value={values.email}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={touched.email ? errors.email : undefined}
+            required
+            autoComplete="email"
+          />
+
+          <FormInput
+            label="Password"
+            id="password"
+            name="password"
+            type="password"
+            value={values.password}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={touched.password ? errors.password : undefined}
+            required
+            autoComplete="current-password"
+          />
+
+          <div className="flex justify-between items-center text-sm">
+            <Link to="/forgot-password" className="text-primary-600 dark:text-primary-400 hover:underline">
+              Forgot password?
             </Link>
-          </p>
-        </div>
-      </Form>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            fullWidth
+            disabled={isSubmitting}
+            className="mt-6"
+          >
+            {isSubmitting ? 'Logging in...' : 'Log In'}
+          </Button>
+
+          <div className="text-center mt-4">
+            <p className="text-neutral-600 dark:text-neutral-300 text-sm">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary-600 dark:text-primary-400 hover:underline">
+                Create an account
+              </Link>
+            </p>
+          </div>
+        </Form>
+      </SentryErrorBoundary>
     </div>
   );
 };

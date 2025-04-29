@@ -5,6 +5,10 @@ import App from './App';
 import './styles/globals.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { initSentry } from './utils/sentry';
+
+// Initialize Sentry for error tracking and monitoring
+initSentry();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

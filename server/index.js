@@ -11,6 +11,8 @@ import chatRoutes from './routes/chat.js';
 import reflectionRoutes from './routes/reflection.js';
 import webhookRoutes from './routes/webhook.js';
 import authRoutes from './routes/auth.js';
+import feedbackRoutes from './routes/feedback.js';
+import adminRoutes from './routes/admin.js';
 
 // Middleware
 import { rateLimit } from './middleware/security.js';
@@ -66,6 +68,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reflection', reflectionRoutes);
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
