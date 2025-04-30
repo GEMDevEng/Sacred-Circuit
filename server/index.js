@@ -28,7 +28,7 @@ const __dirname = path.dirname(__filename);
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002; // Changed to 3002 to avoid conflicts
 
 // Security: Disable X-Powered-By header
 app.disable('x-powered-by');
@@ -45,7 +45,7 @@ app.use(securityHeaders());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? process.env.VERCEL_URL
-    : 'http://localhost:3000',
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'],
   credentials: true
 }));
 
