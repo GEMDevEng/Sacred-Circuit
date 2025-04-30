@@ -8,7 +8,12 @@ Airtable.configure({
   apiKey: process.env.AIRTABLE_API_KEY,
 });
 
-const base = Airtable.base(process.env.AIRTABLE_BASE_ID);
+// Export the function to get the Airtable base
+export function getAirtableBase() {
+  return Airtable.base(process.env.AIRTABLE_BASE_ID);
+}
+
+const base = getAirtableBase();
 const usersTable = base('Users');
 const reflectionsTable = base('Reflections');
 
