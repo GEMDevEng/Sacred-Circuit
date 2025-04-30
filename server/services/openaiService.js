@@ -5,17 +5,54 @@ import Airtable from 'airtable';
 dotenv.config();
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai;
+try {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+} catch (error) {
+  console.warn('OpenAI API key missing or invalid. Chat functionality will return mock responses.');
+  // Create a mock OpenAI client for development
+  openai = {
+    chat: {
+      completions: {
+        create: async () => ({
+          choices: [
+            {
+              message: {
+                content: "This is a mock response. Please set up a valid OpenAI API key to get real responses."
+              }
+            }
+          ]
+        })
+      }
+    }
+  };
+}
 
 // Initialize Airtable for conversation storage
-Airtable.configure({
-  apiKey: process.env.AIRTABLE_API_KEY,
-});
+let base;
+let conversationsTable;
 
-const base = Airtable.base(process.env.AIRTABLE_BASE_ID);
-const conversationsTable = base('Conversations');
+try {
+  Airtable.configure({
+    apiKey: process.env.AIRTABLE_API_KEY,
+  });
+
+  base = Airtable.base(process.env.AIRTABLE_BASE_ID);
+  conversationsTable = base('Conversations');
+} catch (error) {
+  console.warn('Airtable API key or base ID missing or invalid. Conversation storage will be mocked.');
+  // Create mock functions for development
+  conversationsTable = {
+    create: async () => ({
+      id: 'mock-id-' + Date.now(),
+      fields: {
+        'Timestamp': new Date().toISOString()
+      }
+    })
+  };
+}
 
 // System prompt for the spiritual guidance chatbot
 const SYSTEM_PROMPT = `

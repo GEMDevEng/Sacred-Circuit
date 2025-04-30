@@ -3,19 +3,69 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Initialize Airtable
-Airtable.configure({
-  apiKey: process.env.AIRTABLE_API_KEY,
-});
+// Initialize Airtable with error handling
+let base;
+let usersTable;
+let reflectionsTable;
 
-// Export the function to get the Airtable base
-export function getAirtableBase() {
-  return Airtable.base(process.env.AIRTABLE_BASE_ID);
+try {
+  Airtable.configure({
+    apiKey: process.env.AIRTABLE_API_KEY,
+  });
+
+  // Export the function to get the Airtable base
+  export function getAirtableBase() {
+    try {
+      return Airtable.base(process.env.AIRTABLE_BASE_ID);
+    } catch (error) {
+      console.warn('Airtable base ID missing or invalid. Using mock Airtable base.');
+      // Return a mock base for development
+      return {
+        'Feedback': {
+          create: async () => ({ id: 'mock-id-' + Date.now() }),
+          select: () => ({
+            all: async () => [],
+            firstPage: async () => []
+          }),
+          update: async (id) => ({ id })
+        }
+      };
+    }
+  }
+
+  base = getAirtableBase();
+  usersTable = base('Users');
+  reflectionsTable = base('Reflections');
+} catch (error) {
+  console.warn('Airtable API key missing or invalid. Using mock Airtable services.');
+
+  // Create mock tables for development
+  const createMockTable = () => ({
+    create: async () => ({
+      id: 'mock-id-' + Date.now(),
+      fields: {
+        'Timestamp': new Date().toISOString()
+      }
+    }),
+    select: () => ({
+      firstPage: async () => []
+    }),
+    update: async (id) => ({ id })
+  });
+
+  usersTable = createMockTable();
+  reflectionsTable = createMockTable();
+
+  // Export a function that returns a mock base
+  export function getAirtableBase() {
+    return {
+      'Feedback': createMockTable(),
+      'Users': createMockTable(),
+      'Reflections': createMockTable(),
+      'Conversations': createMockTable()
+    };
+  }
 }
-
-const base = getAirtableBase();
-const usersTable = base('Users');
-const reflectionsTable = base('Reflections');
 
 /**
  * Save a user reflection to Airtable
