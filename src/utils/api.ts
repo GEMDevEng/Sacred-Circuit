@@ -20,15 +20,23 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
+// Add request interceptor to include auth token and CSRF token
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
+    // Get auth token from localStorage
     const token = localStorage.getItem('token');
 
     // If token exists, add it to the headers
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Get CSRF token from localStorage
+    const csrfToken = localStorage.getItem('csrfToken');
+
+    // If CSRF token exists and this is a mutating request, add it to the headers
+    if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+      config.headers['X-CSRF-Token'] = csrfToken;
     }
 
     return config;
@@ -115,9 +123,10 @@ export interface ReflectionRequest {
  * Sends a chat message to the API
  *
  * @param data - The chat request data
+ * @param isAuthenticated - Whether the user is authenticated
  * @returns A promise resolving to the chat response
  */
-export const sendChatMessage = async (data: ChatRequest): Promise<ChatResponse> => {
+export const sendChatMessage = async (data: ChatRequest, isAuthenticated: boolean = false): Promise<ChatResponse> => {
   try {
     // Validate input
     if (!isValidChatMessage(data.message)) {
@@ -137,12 +146,14 @@ export const sendChatMessage = async (data: ChatRequest): Promise<ChatResponse> 
       storeConversation: data.storeConversation
     };
 
-    const response = await api.post<ApiResponse<ChatResponseType>>('/chat', payload);
+    // Use secure endpoint if authenticated
+    const endpoint = isAuthenticated ? '/chat/secure' : '/chat';
+    const response = await api.post<ApiResponse<ChatResponseType>>(endpoint, payload);
 
     if (response.data.success && response.data.data) {
       return response.data.data;
     } else {
-      throw new Error(response.data.error || 'Failed to send message');
+      throw new Error(response.data.error ?? 'Failed to send message');
     }
   } catch (error) {
     console.error('Error sending chat message:', error);
@@ -155,9 +166,10 @@ export const sendChatMessage = async (data: ChatRequest): Promise<ChatResponse> 
  * Submits a reflection to the API
  *
  * @param data - The reflection request data
+ * @param isAuthenticated - Whether the user is authenticated
  * @returns A promise that resolves when the reflection is submitted
  */
-export const submitReflection = async (data: ReflectionRequest): Promise<void> => {
+export const submitReflection = async (data: ReflectionRequest, isAuthenticated: boolean = false): Promise<void> => {
   try {
     // Validate input
     if (!isValidHealingName(data.healingName)) {
@@ -174,19 +186,92 @@ export const submitReflection = async (data: ReflectionRequest): Promise<void> =
     const payload: ReflectionRequestType = {
       healingName: data.healingName,
       content: data.reflectionText,
-      milestone: data.journeyDay || 'Not specified',
+      milestone: data.journeyDay ?? 'Not specified',
     };
 
-    const response = await api.post<ApiResponse<void>>('/reflection', payload);
+    // Use secure endpoint if authenticated
+    const endpoint = isAuthenticated ? '/reflection/secure' : '/reflection';
+    const response = await api.post<ApiResponse<void>>(endpoint, payload);
 
     if (response.data.success) {
       toast.success('Your reflection has been submitted successfully');
     } else {
-      throw new Error(response.data.error || 'Failed to submit reflection');
+      throw new Error(response.data.error ?? 'Failed to submit reflection');
     }
   } catch (error) {
     console.error('Error submitting reflection:', error);
     toast.error('Failed to submit reflection. Please try again.');
+    throw error;
+  }
+};
+
+/**
+ * Interface for reflection data returned from the API
+ */
+export interface ReflectionData {
+  id: string;
+  healingName: string;
+  content: string;
+  journeyDay: string;
+  createdAt: string;
+}
+
+/**
+ * Interface for reflection response from the API
+ */
+export interface ReflectionResponse {
+  reflections: ReflectionData[];
+}
+
+/**
+ * Fetches reflections for a healing name
+ *
+ * @param healingName - The healing name to fetch reflections for
+ * @param isAuthenticated - Whether the user is authenticated
+ * @returns A promise resolving to the reflection response
+ */
+export const getReflections = async (healingName: string, isAuthenticated: boolean = false): Promise<ReflectionResponse> => {
+  try {
+    // Validate input
+    if (!isValidHealingName(healingName)) {
+      toast.error('Please enter a valid healing name');
+      throw new Error('Invalid healing name');
+    }
+
+    // Use secure endpoint if authenticated
+    const endpoint = isAuthenticated ? '/reflection/secure' : '/reflection';
+    const response = await api.get<ApiResponse<ReflectionResponse>>(`${endpoint}?healingName=${encodeURIComponent(healingName)}`);
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to fetch reflections');
+    }
+  } catch (error) {
+    console.error('Error fetching reflections:', error);
+    toast.error('Failed to fetch reflections. Please try again.');
+    throw error;
+  }
+};
+
+/**
+ * Fetches reflections for the authenticated user without specifying a healing name
+ * This is more secure as it uses the user ID from the JWT token
+ *
+ * @returns A promise resolving to the reflection response
+ */
+export const getAuthenticatedUserReflections = async (): Promise<ReflectionResponse> => {
+  try {
+    const response = await api.get<ApiResponse<ReflectionResponse>>('/reflection/secure');
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to fetch reflections');
+    }
+  } catch (error) {
+    console.error('Error fetching reflections:', error);
+    toast.error('Failed to fetch reflections. Please try again.');
     throw error;
   }
 };
@@ -232,7 +317,7 @@ export const register = async (data: RegisterRequest): Promise<AuthResponse> => 
 
       return response.data.data;
     } else {
-      throw new Error(response.data.error || 'Registration failed');
+      throw new Error(response.data.error ?? 'Registration failed');
     }
   } catch (error) {
     console.error('Registration error:', error);
@@ -257,7 +342,7 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 
       return response.data.data;
     } else {
-      throw new Error(response.data.error || 'Login failed');
+      throw new Error(response.data.error ?? 'Login failed');
     }
   } catch (error) {
     console.error('Login error:', error);
@@ -293,16 +378,36 @@ export const logout = async (): Promise<void> => {
  */
 export const getCurrentUser = async () => {
   try {
-    const response = await api.get<ApiResponse<{ user: any }>>('/auth/me');
+    const response = await api.get<ApiResponse<{ user: AuthResponse['user'] }>>('/auth/me');
 
     if (response.data.success && response.data.data) {
       return response.data.data.user;
     } else {
-      throw new Error(response.data.error || 'Failed to get user data');
+      throw new Error(response.data.error ?? 'Failed to get user data');
     }
   } catch (error) {
     console.error('Get current user error:', error);
     throw error;
+  }
+};
+
+/**
+ * Fetches a CSRF token from the server
+ *
+ * @returns A promise that resolves when the CSRF token is fetched
+ */
+export const fetchCsrfToken = async (): Promise<void> => {
+  try {
+    const response = await api.get<ApiResponse<{ csrfToken: string }>>('/csrf-token');
+
+    if (response.data.success && response.data.data) {
+      // Store CSRF token in localStorage
+      localStorage.setItem('csrfToken', response.data.data.csrfToken);
+    } else {
+      console.error('Failed to fetch CSRF token');
+    }
+  } catch (error) {
+    console.error('Error fetching CSRF token:', error);
   }
 };
 

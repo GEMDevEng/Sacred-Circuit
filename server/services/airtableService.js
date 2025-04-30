@@ -77,7 +77,7 @@ export async function getReflectionsByHealingName(healingName) {
       healingName: record.fields['Healing Name'],
       content: record.fields['Reflection Text'],
       journeyDay: record.fields['Journey Day'],
-      timestamp: record.fields['Timestamp']
+      createdAt: record.fields['Timestamp']
     }));
   } catch (error) {
     console.error('Airtable error:', error);
@@ -86,15 +86,15 @@ export async function getReflectionsByHealingName(healingName) {
 }
 
 /**
- * Get reflections by healing name
- * @param {string} healingName - The user's healing name
+ * Get reflections by user ID
+ * @param {string} userId - The user's ID
  * @returns {Promise<Array>} - Array of reflection records
  */
-export async function getReflectionsByHealingName(healingName) {
+export async function getReflectionsByUserId(userId) {
   try {
-    // Query reflections by healing name
+    // Query reflections by user ID
     const records = await reflectionsTable.select({
-      filterByFormula: `{Healing Name} = '${healingName}'`,
+      filterByFormula: `SEARCH('${userId}', {User})`,
       sort: [{ field: 'Timestamp', direction: 'desc' }],
       maxRecords: 100
     }).firstPage();
@@ -105,7 +105,7 @@ export async function getReflectionsByHealingName(healingName) {
       healingName: record.fields['Healing Name'],
       content: record.fields['Reflection Text'],
       journeyDay: record.fields['Journey Day'],
-      timestamp: record.fields['Timestamp']
+      createdAt: record.fields['Timestamp']
     }));
   } catch (error) {
     console.error('Airtable error:', error);

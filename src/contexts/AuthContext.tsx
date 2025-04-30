@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login as apiLogin, register as apiRegister, logout as apiLogout, getCurrentUser } from '../utils/api';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { login as apiLogin, register as apiRegister, logout as apiLogout, getCurrentUser, fetchCsrfToken } from '../utils/api';
 
 // Define the User type
 export interface User {
@@ -34,10 +34,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is already logged in on mount
+  // Check if user is already logged in on mount and fetch CSRF token
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Fetch CSRF token regardless of authentication status
+        await fetchCsrfToken();
+
         const token = localStorage.getItem('token');
 
         if (token) {
@@ -73,9 +76,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Set user data
       setUser(response.user);
+
+      // Fetch a new CSRF token after successful login
+      await fetchCsrfToken();
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Invalid email or password');
+      setError(err.message ?? 'Invalid email or password');
       throw err;
     } finally {
       setIsLoading(false);
@@ -93,9 +99,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Set user data
       setUser(response.user);
+
+      // Fetch a new CSRF token after successful registration
+      await fetchCsrfToken();
     } catch (err: any) {
       console.error('Registration error:', err);
-      setError(err.message || 'Failed to register account');
+      setError(err.message ?? 'Failed to register account');
       throw err;
     } finally {
       setIsLoading(false);
@@ -110,15 +119,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Clear user state
       setUser(null);
+
+      // Clear CSRF token
+      localStorage.removeItem('csrfToken');
+
+      // Fetch a new CSRF token for anonymous users
+      await fetchCsrfToken();
     } catch (err) {
       console.error('Logout error:', err);
       // Clear user state even if API call fails
       setUser(null);
+
+      // Clear CSRF token
+      localStorage.removeItem('csrfToken');
+
+      // Fetch a new CSRF token for anonymous users
+      try {
+        await fetchCsrfToken();
+      } catch (csrfErr) {
+        console.error('Failed to fetch CSRF token after logout:', csrfErr);
+      }
     }
   };
 
   // Provide the auth context value
-  const value = {
+  const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
@@ -126,7 +151,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     register,
     logout,
     error,
-  };
+  }), [user, isLoading, error]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

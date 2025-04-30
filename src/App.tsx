@@ -8,6 +8,7 @@ import Layout from './components/common/Layout';
 import LandingPage from './components/landing/LandingPage';
 import ChatbotPage from './components/chatbot/ChatbotPage';
 import ReflectionPage from './components/landing/ReflectionPage';
+import ReflectionHistory from './components/reflection/ReflectionHistory';
 import AboutPage from './components/landing/AboutPage';
 import PrivacyPage from './components/landing/PrivacyPage';
 import NotFoundPage from './components/landing/NotFoundPage';
@@ -56,6 +57,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ReflectionPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="reflection/history"
+                element={
+                  <ProtectedRoute>
+                    <ReflectionHistory />
                   </ProtectedRoute>
                 }
               />

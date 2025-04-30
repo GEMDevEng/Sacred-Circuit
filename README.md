@@ -12,6 +12,7 @@ This repository contains the codebase for the Minimum Viable Product (MVP), targ
 - [Running the Application](#running-the-application)
 - [Testing](#testing)
 - [Deployment](#deployment)
+- [Security Features](#security-features)
 - [Contributing](#contributing)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
@@ -182,6 +183,38 @@ The application is deployed to Vercel for production.
 4. **Verify Deployment**:
    - Access the deployed app at the Vercel URL (e.g., `https://your-vercel-app.vercel.app`).
    - Test all user flows (onboarding, chatbot, reflections) in production.
+
+## Security Features
+The Sacred Healing Companion & Journey Hub implements comprehensive security measures to protect user data and ensure privacy:
+
+1. **Authentication Security**:
+   - **JWT-Based Authentication**: Secure token-based authentication with short-lived access tokens (15 minutes).
+   - **Refresh Tokens**: Secure HTTP-only cookies with 7-day expiration for persistent sessions.
+   - **Token Refresh**: Automatic refresh of expired tokens for seamless user experience.
+   - **Password Security**: Bcrypt hashing with salt for secure password storage.
+
+2. **API Security**:
+   - **Rate Limiting**: Prevents abuse with IP-based and user-based rate limits.
+   - **Input Validation**: All user inputs are validated and sanitized.
+   - **CSRF Protection**: Cross-Site Request Forgery protection with secure tokens.
+   - **Security Headers**: Comprehensive security headers including Content-Security-Policy.
+
+3. **Data Privacy**:
+   - **Zero Data Retention**: Option for users to opt out of data storage for chatbot conversations.
+   - **GDPR Compliance**: User data handling follows GDPR requirements.
+   - **Minimal Data Collection**: Only essential data is collected from users.
+   - **Secure Storage**: Sensitive data is stored securely in Airtable.
+
+4. **Transport Security**:
+   - **HTTPS**: All communication is encrypted using TLS.
+   - **Secure Cookies**: Cookies are set with Secure and SameSite attributes.
+   - **Content Security Policy**: Prevents XSS attacks and other content injection vulnerabilities.
+
+5. **Webhook Security**:
+   - **Signature Verification**: Typeform webhooks are verified using HMAC signatures.
+   - **IP Filtering**: Additional protection for webhook endpoints.
+
+For more details, see the [Security Documentation](docs/security/security-features.md).
 
 ## Contributing
 We welcome contributions to enhance the Sacred Healing Companion & Journey Hub. Follow these steps:

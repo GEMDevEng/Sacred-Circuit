@@ -1,5 +1,5 @@
 import express from 'express';
-import { saveReflection, findUserByHealingName, getReflectionsByHealingName } from '../services/airtableService.js';
+import { saveReflection, findUserByHealingName, getReflectionsByHealingName, getReflectionsByUserId } from '../services/airtableService.js';
 import { validateRequest, reflectionRequestSchema } from '../middleware/validation.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/security.js';
@@ -100,5 +100,52 @@ router.get('/',
     }
   }
 );
+
+/**
+ * @route GET /api/reflection/secure
+ * @desc Get reflections for authenticated user
+ * @access Private
+ */
+router.get('/secure',
+  authenticateToken(),
+  async (req, res) => {
+    try {
+      const { healingName } = req.query;
+      const userId = req.userId;
+
+      // If healingName is provided, verify it belongs to the authenticated user
+      if (healingName) {
+        const user = await findUserByHealingName(healingName);
+
+        if (!user || user.id !== userId) {
+          return sendErrorResponse(res, 'Unauthorized access to reflections', 403);
+        }
+
+        // Get reflections for the specified healing name
+        const reflections = await getReflectionsByHealingName(healingName);
+        return sendSuccessResponse(res, { reflections });
+      }
+
+      // If no healingName provided, get reflections for the authenticated user
+      const reflections = await getReflectionsByUserId(userId);
+      return sendSuccessResponse(res, { reflections });
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/reflection/health
+ * @desc Health check endpoint for the reflection service
+ * @access Public
+ */
+router.get('/health', (req, res) => {
+  return sendSuccessResponse(res, {
+    status: 'ok',
+    message: 'Reflection service is running',
+    timestamp: new Date().toISOString()
+  });
+});
 
 export default router;

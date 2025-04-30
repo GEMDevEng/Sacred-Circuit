@@ -13,10 +13,12 @@ import webhookRoutes from './routes/webhook.js';
 import authRoutes from './routes/auth.js';
 import feedbackRoutes from './routes/feedback.js';
 import adminRoutes from './routes/admin.js';
+import healthRoutes from './routes/health.js';
 
 // Middleware
-import { rateLimit } from './middleware/security.js';
+import { rateLimit, securityHeaders } from './middleware/security.js';
 import { sendErrorResponse } from './utils/response-utils.js';
+import csrfProtection, { handleCsrfError, getCsrfToken, refreshCsrfToken } from './middleware/csrf.js';
 
 // Initialize environment variables
 dotenv.config();
@@ -35,6 +37,9 @@ app.disable('x-powered-by');
 app.use(helmet({
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false
 }));
+
+// Apply additional custom security headers
+app.use(securityHeaders());
 
 // CORS configuration
 app.use(cors({
@@ -63,6 +68,20 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// CSRF protection for all API routes except webhooks
+app.use('/api', (req, res, next) => {
+  // Skip CSRF protection for webhook routes
+  if (req.path.startsWith('/webhook')) {
+    return next();
+  }
+
+  // Apply CSRF protection
+  csrfProtection(req, res, next);
+});
+
+// Handle CSRF errors
+app.use(handleCsrfError);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
@@ -70,18 +89,10 @@ app.use('/api/reflection', reflectionRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/health', healthRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      status: 'ok',
-      message: 'Server is running',
-      timestamp: new Date().toISOString()
-    }
-  });
-});
+// CSRF token endpoint
+app.get('/api/csrf-token', csrfProtection, refreshCsrfToken, getCsrfToken);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

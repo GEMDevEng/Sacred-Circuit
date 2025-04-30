@@ -90,4 +90,17 @@ router.post('/secure',
   }
 );
 
+/**
+ * @route GET /api/chat/health
+ * @desc Health check endpoint for the chat service
+ * @access Public
+ */
+router.get('/health', (req, res) => {
+  return sendSuccessResponse(res, {
+    status: 'ok',
+    message: 'Chat service is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 export default router;
