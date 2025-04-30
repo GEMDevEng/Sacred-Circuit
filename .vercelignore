@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+
+# Testing
+coverage
+cypress
+__tests__
+*.test.*
+jest.config.js
+jest.setup.js
+
+# Development
+.github
+.vscode
+.idea
+*.log
+README.md
+CONTRIBUTING.md
+LICENSE
+
+# Source control
+.git
+.gitignore
+
+# Build artifacts
+dist
