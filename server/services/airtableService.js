@@ -8,56 +8,31 @@ let base;
 let usersTable;
 let reflectionsTable;
 
-try {
-  Airtable.configure({
-    apiKey: process.env.AIRTABLE_API_KEY,
-  });
-
-  // Export the function to get the Airtable base
-  export function getAirtableBase() {
-    try {
-      return Airtable.base(process.env.AIRTABLE_BASE_ID);
-    } catch (error) {
-      console.warn('Airtable base ID missing or invalid. Using mock Airtable base.');
-      // Return a mock base for development
-      return {
-        'Feedback': {
-          create: async () => ({ id: 'mock-id-' + Date.now() }),
-          select: () => ({
-            all: async () => [],
-            firstPage: async () => []
-          }),
-          update: async (id) => ({ id })
-        }
-      };
+// Create mock table function
+const createMockTable = () => ({
+  create: async () => ({
+    id: 'mock-id-' + Date.now(),
+    fields: {
+      'Timestamp': new Date().toISOString()
     }
-  }
+  }),
+  select: () => ({
+    all: async () => [],
+    firstPage: async () => []
+  }),
+  update: async (id) => ({ id })
+});
 
-  base = getAirtableBase();
-  usersTable = base('Users');
-  reflectionsTable = base('Reflections');
-} catch (error) {
-  console.warn('Airtable API key missing or invalid. Using mock Airtable services.');
-
-  // Create mock tables for development
-  const createMockTable = () => ({
-    create: async () => ({
-      id: 'mock-id-' + Date.now(),
-      fields: {
-        'Timestamp': new Date().toISOString()
-      }
-    }),
-    select: () => ({
-      firstPage: async () => []
-    }),
-    update: async (id) => ({ id })
-  });
-
-  usersTable = createMockTable();
-  reflectionsTable = createMockTable();
-
-  // Export a function that returns a mock base
-  export function getAirtableBase() {
+// Export the function to get the Airtable base
+export function getAirtableBase() {
+  try {
+    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
+      throw new Error('Missing Airtable credentials');
+    }
+    return Airtable.base(process.env.AIRTABLE_BASE_ID);
+  } catch (error) {
+    console.warn('Airtable configuration error:', error.message);
+    // Return a mock base for development
     return {
       'Feedback': createMockTable(),
       'Users': createMockTable(),
@@ -65,6 +40,23 @@ try {
       'Conversations': createMockTable()
     };
   }
+}
+
+// Configure Airtable
+try {
+  Airtable.configure({
+    apiKey: process.env.AIRTABLE_API_KEY,
+  });
+
+  base = getAirtableBase();
+  usersTable = base('Users');
+  reflectionsTable = base('Reflections');
+} catch (error) {
+  console.warn('Airtable initialization error:', error.message);
+
+  // Use mock tables for development
+  usersTable = createMockTable();
+  reflectionsTable = createMockTable();
 }
 
 /**
