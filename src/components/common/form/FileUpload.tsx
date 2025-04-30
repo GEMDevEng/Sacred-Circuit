@@ -139,11 +139,11 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
     // Handle file selection
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
-      
+
       // Validate files
       const error = validateFiles(files);
       setValidationError(error);
-      
+
       if (error || !files || files.length === 0) {
         if (onChange) onChange(e);
         if (onFilesSelected) onFilesSelected(null);
@@ -167,7 +167,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
 
       // Call original onChange handler
       if (onChange) onChange(e);
-      
+
       // Call onFilesSelected callback
       if (onFilesSelected) onFilesSelected(files);
     };
@@ -176,25 +176,25 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
     const handleRemoveFile = (index: number) => {
       const newFiles = [...selectedFiles];
       newFiles.splice(index, 1);
-      
+
       // Update selected files
       setSelectedFiles(newFiles);
-      
+
       // Revoke object URL to prevent memory leaks
       if (previewUrls[index]) {
         URL.revokeObjectURL(previewUrls[index]);
       }
-      
+
       // Update preview URLs
       const newPreviewUrls = [...previewUrls];
       newPreviewUrls.splice(index, 1);
       setPreviewUrls(newPreviewUrls);
-      
+
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       // Call onFilesSelected with null if no files left
       if (newFiles.length === 0 && onFilesSelected) {
         onFilesSelected(null);
@@ -205,7 +205,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
     const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       if (e.type === 'dragenter' || e.type === 'dragover') {
         setDragActive(true);
       } else if (e.type === 'dragleave') {
@@ -218,16 +218,16 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
-      
+
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         // Update file input value
         if (fileInputRef.current) {
           fileInputRef.current.files = e.dataTransfer.files;
-          
+
           // Create a synthetic change event
           const event = new Event('change', { bubbles: true });
           fileInputRef.current.dispatchEvent(event);
-          
+
           // Handle the files
           handleFileChange({ target: { files: e.dataTransfer.files } } as React.ChangeEvent<HTMLInputElement>);
         }
@@ -236,6 +236,16 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
 
     // Combine error messages
     const displayError = error || validationError;
+
+    // Get aria-describedby attribute value
+    const getAriaDescribedBy = () => {
+      if (displayError) {
+        return `${inputId}-error`;
+      } else if (helperText) {
+        return `${inputId}-helper`;
+      }
+      return undefined;
+    };
 
     return (
       <div className={`mb-4 ${containerClassName}`}>
@@ -246,7 +256,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
-        
+
         {/* File Drop Zone */}
         <div
           className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
@@ -275,7 +285,10 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
                 } else if (ref) {
                   ref.current = node;
                 }
-                fileInputRef.current = node;
+                // Only assign if node is not null
+                if (node) {
+                  fileInputRef.current = node;
+                }
               }}
               id={inputId}
               type="file"
@@ -283,20 +296,14 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
               accept={accept}
               multiple={multiple}
               onChange={handleFileChange}
-              aria-invalid={!!displayError}
-              aria-describedby={
-                displayError
-                  ? `${inputId}-error`
-                  : helperText
-                  ? `${inputId}-helper`
-                  : undefined
-              }
+              aria-invalid={displayError ? 'true' : 'false'}
+              aria-describedby={getAriaDescribedBy()}
               required={required}
               {...props}
             />
           </div>
         </div>
-        
+
         {/* Selected Files */}
         {selectedFiles.length > 0 && (
           <div className="mt-3 space-y-2">
@@ -327,7 +334,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             ))}
           </div>
         )}
-        
+
         {/* Image Previews */}
         {showPreview && previewUrls.some(url => url) && (
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -356,7 +363,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             })}
           </div>
         )}
-        
+
         {/* Error Message */}
         {displayError && (
           <p id={`${inputId}-error`} className="mt-1.5 text-sm text-red-600 flex items-center">
@@ -364,7 +371,7 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             {displayError}
           </p>
         )}
-        
+
         {/* Helper Text */}
         {helperText && !displayError && (
           <p id={`${inputId}-helper`} className="mt-1.5 text-sm text-neutral-500">

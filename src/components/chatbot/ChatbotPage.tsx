@@ -304,12 +304,14 @@ const ChatbotPage = () => {
                       <div className="flex-grow">
                         <TextArea
                           id="message"
+                          label="Message"
                           value={input}
                           onChange={(e) => setInput(e.target.value)}
                           onKeyPress={handleKeyPress}
                           placeholder="Type your message..."
                           rows={2}
                           containerClassName="mb-0"
+                          labelClassName="sr-only" // Hide label visually but keep it for screen readers
                         />
                       </div>
 

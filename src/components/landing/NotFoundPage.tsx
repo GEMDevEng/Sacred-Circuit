@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import PageTransition from '../components/PageTransition';
-import Button from '../components/Button';
+import PageTransition from '../common/PageTransition';
+import Button from '../common/Button';
 
 const NotFoundPage = () => {
   return (

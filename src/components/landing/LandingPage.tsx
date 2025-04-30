@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
-import PageTransition from '../components/PageTransition';
-import Button from '../components/Button';
+import PageTransition from '../common/PageTransition';
+import Button from '../common/Button';
 
 const LandingPage = () => {
   return (
@@ -45,15 +45,15 @@ const LandingPage = () => {
             {/* Guided Chatbot */}
             <div className="bg-neutral-50 rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="text-primary-500 mb-4">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="40" 
-                  height="40" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                   strokeLinejoin="round"
                 >
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -68,15 +68,15 @@ const LandingPage = () => {
             {/* Private Reflections */}
             <div className="bg-neutral-50 rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="text-accent-600 mb-4">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="40" 
-                  height="40" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                   strokeLinejoin="round"
                 >
                   <path d="M12 3v12"></path>
@@ -93,15 +93,15 @@ const LandingPage = () => {
             {/* Email Support */}
             <div className="bg-neutral-50 rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="text-secondary-800 mb-4">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="40" 
-                  height="40" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                   strokeLinejoin="round"
                 >
                   <rect width="20" height="16" x="2" y="4" rx="2"></rect>
@@ -126,14 +126,14 @@ const LandingPage = () => {
               Your healing journey awaits. Take the first step toward spiritual wellness and self-discovery.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
+              <Button
                 variant="primary"
                 onClick={() => window.location.href = '/chatbot'}
                 aria-label="Explore the Chatbot"
               >
                 Explore the Chatbot
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => window.location.href = '/about'}
                 aria-label="Learn More About Us"
