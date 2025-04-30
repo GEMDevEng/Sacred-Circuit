@@ -27,7 +27,7 @@ describe('Form Component', () => {
         <input data-testid="test-input" />
       </Form>
     );
-    
+
     const fieldset = screen.getByRole('group');
     expect(fieldset).toBeDisabled();
   });
@@ -39,7 +39,7 @@ describe('Form Component', () => {
         <button type="submit">Submit</button>
       </Form>
     );
-    
+
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
     expect(handleSubmit).toHaveBeenCalled();
   });
@@ -51,8 +51,9 @@ describe('Form Component', () => {
         <div>Test Child</div>
       </Form>
     );
-    
-    const form = screen.getByRole('form');
+
+    // Get the form element by its HTML tag instead of role
+    const form = document.querySelector('form');
     expect(form).toHaveClass(customClass);
   });
 });

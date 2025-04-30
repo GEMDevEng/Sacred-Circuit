@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import LoginForm from '../../../components/auth/LoginForm';
-import { AuthProvider, useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 // Mock the useAuth hook
 jest.mock('../../../contexts/AuthContext', () => {

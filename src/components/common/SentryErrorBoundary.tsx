@@ -1,17 +1,10 @@
 import React from 'react';
-import { ErrorBoundary } from '@sentry/react';
+import { ErrorBoundary, FallbackRender } from '@sentry/react';
 import { motion } from 'framer-motion';
-
-interface FallbackProps {
-  error: Error;
-  componentStack: string | null;
-  eventId: string | null;
-  resetError(): void;
-}
 
 interface SentryErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<FallbackProps>;
+  fallback?: FallbackRender;
   showDialog?: boolean;
   dialogOptions?: {
     title?: string;
@@ -31,7 +24,7 @@ interface SentryErrorBoundaryProps {
 /**
  * Default fallback component for error states
  */
-const DefaultFallback: React.FC<FallbackProps> = ({ error, resetError }) => {
+const DefaultFallback: FallbackRender = ({ error, resetError }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -62,6 +55,7 @@ const DefaultFallback: React.FC<FallbackProps> = ({ error, resetError }) => {
       </p>
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={resetError}
           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
         >

@@ -33,7 +33,8 @@ const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   ) => {
     const [isFocused, setIsFocused] = useState(false);
     const [characterCount, setCharacterCount] = useState(0);
-    const [value, setValue] = useState(props.value || props.defaultValue || '');
+    // Track textarea value for character count
+    const [, setValue] = useState(props.value || props.defaultValue || '');
 
     useEffect(() => {
       if (props.value !== undefined) {
@@ -72,7 +73,7 @@ const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           id={id}
           name={id}
           rows={rows}
-          aria-invalid={!!error}
+          aria-invalid={error ? 'true' : 'false'}
           aria-describedby={`${id}-error ${id}-helper`}
           required={required}
           maxLength={maxLength}

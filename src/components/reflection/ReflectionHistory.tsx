@@ -17,7 +17,7 @@ interface Reflection {
 }
 
 const ReflectionHistory = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReflection, setSelectedReflection] = useState<Reflection | null>(null);

@@ -33,7 +33,8 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
   ) => {
     const [isFocused, setIsFocused] = useState(false);
     const [characterCount, setCharacterCount] = useState(0);
-    const [value, setValue] = useState(props.value || props.defaultValue || '');
+    // Track input value for character count
+    const [, setValue] = useState(props.value || props.defaultValue || '');
 
     useEffect(() => {
       if (props.value !== undefined) {
@@ -77,7 +78,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             ref={ref}
             id={id}
             name={id}
-            aria-invalid={!!error}
+            aria-invalid={error ? 'true' : 'false'}
             aria-describedby={`${id}-error ${id}-helper`}
             required={required}
             maxLength={maxLength}

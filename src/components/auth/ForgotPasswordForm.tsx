@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useForm from '../../hooks/useForm';
 import { validateRequired, validateEmail } from '../../utils/validators';
-import { Form } from '../common/form';
-import { FormInput } from '../common/form';
+import { requestPasswordReset } from '../../utils/api';
+import { Form, FormInput } from '../common/form';
 import Button from '../common/Button';
 import SentryErrorBoundary from '../common/SentryErrorBoundary';
 
@@ -37,16 +37,15 @@ const ForgotPasswordForm = () => {
     },
     onSubmit: async (values) => {
       try {
-        // TODO: Implement actual password reset API call
-        // For now, we'll just simulate a successful request
+        // Call the API to request a password reset
+        const result = await requestPasswordReset(values.email);
 
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        setIsSuccess(true);
-        toast.success('Password reset instructions sent to your email');
-      } catch (error) {
-        setFormError('Failed to send password reset email. Please try again.');
+        if (result.success) {
+          setIsSuccess(true);
+        }
+      } catch (error: any) {
+        // Set form error message
+        setFormError(error.message ?? 'Failed to send password reset email. Please try again.');
       }
     },
   });

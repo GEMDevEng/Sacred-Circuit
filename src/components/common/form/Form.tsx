@@ -4,7 +4,7 @@ export interface FormProps extends FormHTMLAttributes<HTMLFormElement> {
   /** Form children */
   children: ReactNode;
   /** Form error message */
-  error?: string;
+  error?: string | null;
   /** Whether the form is in a loading state */
   isLoading?: boolean;
   /** Additional class name for the form */
@@ -33,7 +33,7 @@ const Form = ({
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
-      
+
       <fieldset disabled={isLoading} className="space-y-4">
         {children}
       </fieldset>

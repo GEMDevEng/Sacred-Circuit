@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ApiResponse, ChatRequest as ChatRequestType, ChatResponse as ChatResponseType, ReflectionRequest as ReflectionRequestType } from '../types';
-import { createSuccessResponse, createErrorResponse, handleApiError } from './api-response';
 import { isValidChatMessage, isValidHealingName, isValidReflection } from './validators';
 
 // Get API URL from environment or use default
@@ -295,7 +294,7 @@ export interface AuthResponse {
     id: string;
     healingName: string;
     email: string;
-    role: string;
+    role: 'user' | 'admin';
   };
   accessToken: string;
 }
@@ -408,6 +407,29 @@ export const fetchCsrfToken = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Error fetching CSRF token:', error);
+  }
+};
+
+/**
+ * Requests a password reset for the specified email
+ *
+ * @param email - The email address to send the password reset link to
+ * @returns A promise that resolves when the password reset request is sent
+ */
+export const requestPasswordReset = async (email: string): Promise<{ success: boolean }> => {
+  try {
+    const response = await api.post<ApiResponse<void>>('/auth/request-password-reset', { email });
+
+    if (response.data.success) {
+      toast.success('Password reset instructions sent to your email');
+      return { success: true };
+    } else {
+      throw new Error(response.data.error ?? 'Failed to request password reset');
+    }
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    toast.error('Failed to send password reset email. Please try again.');
+    throw error;
   }
 };
 

@@ -55,7 +55,8 @@ const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
     ref
   ) => {
     const inputId = useId();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // Create a properly typed mutable ref to allow assignment
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
     const [dragActive, setDragActive] = useState(false);
