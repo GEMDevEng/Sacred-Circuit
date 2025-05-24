@@ -2,7 +2,7 @@ import { InputHTMLAttributes, forwardRef } from 'react';
 
 export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   /** Label text for the checkbox */
-  label: string;
+  label: string | React.ReactNode;
   /** Error message to display */
   error?: string;
   /** Helper text to display below the checkbox */
@@ -34,7 +34,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     ref
   ) => {
     // Generate a unique ID if not provided
-    const checkboxId = id || `checkbox-${label.toLowerCase().replace(/\s+/g, '-')}`;
+    const checkboxId = id || `checkbox-${typeof label === 'string' ? label.toLowerCase().replace(/\s+/g, '-') : 'checkbox'}`;
 
     return (
       <div className={`mb-4 ${containerClassName}`}>

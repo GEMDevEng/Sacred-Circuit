@@ -4,6 +4,9 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// Mock scrollIntoView which is not available in jsdom
+Element.prototype.scrollIntoView = jest.fn();
+
 // Mock the IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   constructor() {
