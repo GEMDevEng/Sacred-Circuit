@@ -12,6 +12,14 @@ jest.mock('../../../contexts/AuthContext', () => {
   };
 });
 
+// Mock framer-motion to avoid animation issues in tests
+jest.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
+
 describe('ProtectedRoute Component', () => {
   // Test components
   const TestComponent = () => <div>Protected Content</div>;

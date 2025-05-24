@@ -62,6 +62,9 @@ describe('ReflectionPage', () => {
   });
 
   test('validates form inputs', async () => {
+    // Clear localStorage to ensure clean state
+    localStorage.clear();
+
     // Mock toast.error to capture validation messages
     const mockToastError = jest.fn();
     jest.spyOn(require('react-toastify').toast, 'error').mockImplementation(mockToastError);
@@ -74,27 +77,37 @@ describe('ReflectionPage', () => {
       </AuthProvider>
     );
 
-    // Clear the healing name input first (it might be pre-filled from localStorage)
+    // Get form elements
     const healingNameInput = screen.getByPlaceholderText('Enter your healing name');
+    const reflectionTextarea = screen.getByPlaceholderText('Share your thoughts, feelings, and insights from your healing journey so far...');
+    const submitButton = screen.getByRole('button', { name: /submit reflection/i });
+
+    // Ensure healing name input is empty
     fireEvent.change(healingNameInput, { target: { value: '' } });
 
     // Try to submit without healing name
-    const submitButton = screen.getByRole('button', { name: /submit reflection/i });
     fireEvent.click(submitButton);
 
     // Check that toast.error was called with the validation message
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith('Please enter your healing name');
-    });
+    }, { timeout: 3000 });
+
+    // Clear the mock calls for the next test
+    mockToastError.mockClear();
 
     // Add healing name but no reflection
     fireEvent.change(healingNameInput, { target: { value: 'TestHealer' } });
+
+    // Ensure reflection textarea is empty
+    fireEvent.change(reflectionTextarea, { target: { value: '' } });
+
     fireEvent.click(submitButton);
 
     // Check that toast.error was called with the validation message
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith('Please share your reflection');
-    });
+    }, { timeout: 3000 });
   });
 
   test('submits reflection successfully', async () => {
