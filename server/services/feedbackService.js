@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getAirtableBase } from './airtableService.js';
+import { saveFeedback as saveFeedbackToSheets, getAllFeedback as getAllFeedbackFromSheets, updateFeedbackStatus as updateFeedbackStatusInSheets } from './googleSheetsService.js';
 
 /**
  * Hash sensitive data for privacy
@@ -12,33 +12,31 @@ const hashData = (data) => {
 };
 
 /**
- * Save feedback to Airtable
+ * Save feedback to Google Sheets
  * @param {Object} feedback - Feedback data
  * @returns {Promise<Object>} - Saved feedback record
  */
 export const saveFeedback = async (feedback) => {
   try {
-    const base = getAirtableBase();
-    const table = base('Feedback');
-
     // Hash IP address for privacy
     const hashedIp = feedback.clientIp ? hashData(feedback.clientIp) : null;
 
-    // Create record
-    const record = await table.create({
-      Type: feedback.type,
-      Title: feedback.title,
-      Description: feedback.description,
-      Email: feedback.email || '',
-      'IP Hash': hashedIp || '',
-      'User Agent': feedback.userAgent || '',
-      Timestamp: feedback.timestamp,
-      Status: 'New'
-    });
+    // Prepare feedback data for Google Sheets
+    const feedbackData = {
+      type: feedback.type,
+      title: feedback.title,
+      description: feedback.description,
+      email: feedback.email || '',
+      clientIp: hashedIp || '',
+      userAgent: feedback.userAgent || '',
+      timestamp: feedback.timestamp
+    };
 
-    return record;
+    // Save to Google Sheets
+    const result = await saveFeedbackToSheets(feedbackData);
+    return result;
   } catch (error) {
-    console.error('Error saving feedback to Airtable:', error);
+    console.error('Error saving feedback to Google Sheets:', error);
     throw new Error('Failed to save feedback');
   }
 };
@@ -50,36 +48,11 @@ export const saveFeedback = async (feedback) => {
  */
 export const getAllFeedback = async (options = {}) => {
   try {
-    const base = getAirtableBase();
-    const table = base('Feedback');
-
-    // Build filter formula if status is provided
-    let filterByFormula = '';
-    if (options.status) {
-      filterByFormula = `{Status} = '${options.status}'`;
-    }
-
-    // Query parameters
-    const params = {
-      sort: [{ field: 'Timestamp', direction: 'desc' }],
-      ...(filterByFormula && { filterByFormula })
-    };
-
-    // Get records
-    const records = await table.select(params).all();
-
-    // Format records
-    return records.map(record => ({
-      id: record.id,
-      type: record.get('Type'),
-      title: record.get('Title'),
-      description: record.get('Description'),
-      email: record.get('Email'),
-      timestamp: record.get('Timestamp'),
-      status: record.get('Status')
-    }));
+    // Get feedback from Google Sheets
+    const feedback = await getAllFeedbackFromSheets(options);
+    return feedback;
   } catch (error) {
-    console.error('Error fetching feedback from Airtable:', error);
+    console.error('Error fetching feedback from Google Sheets:', error);
     throw new Error('Failed to fetch feedback');
   }
 };
@@ -92,28 +65,17 @@ export const getAllFeedback = async (options = {}) => {
  */
 export const updateFeedbackStatus = async (id, status) => {
   try {
-    const base = getAirtableBase();
-    const table = base('Feedback');
-
     // Validate status
     const validStatuses = ['New', 'In Progress', 'Resolved', 'Closed'];
     if (!validStatuses.includes(status)) {
       throw new Error('Invalid status');
     }
 
-    // Update record
-    const record = await table.update(id, {
-      Status: status
-    });
-
-    return {
-      id: record.id,
-      type: record.get('Type'),
-      title: record.get('Title'),
-      status: record.get('Status')
-    };
+    // Update feedback status in Google Sheets
+    const result = await updateFeedbackStatusInSheets(id, status);
+    return result;
   } catch (error) {
-    console.error('Error updating feedback status in Airtable:', error);
+    console.error('Error updating feedback status in Google Sheets:', error);
     throw new Error('Failed to update feedback status');
   }
 };

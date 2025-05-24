@@ -26,7 +26,13 @@
     "cypress:run:auth": "cypress run --spec \"cypress/e2e/authentication.cy.js\"",
     "cypress:run:navigation": "cypress run --spec \"cypress/e2e/navigation.cy.js\"",
     "test:e2e": "start-server-and-test start http://localhost:3000 cypress:run",
-    "test:e2e:open": "start-server-and-test start http://localhost:3000 cypress:open"
+    "test:e2e:open": "start-server-and-test start http://localhost:3000 cypress:open",
+    "migrate:dry-run": "node server/scripts/migrateToGoogleSheets.js --dry-run",
+    "migrate:all": "node server/scripts/migrateToGoogleSheets.js",
+    "migrate:users": "node server/scripts/migrateToGoogleSheets.js --table=users",
+    "migrate:reflections": "node server/scripts/migrateToGoogleSheets.js --table=reflections",
+    "migrate:conversations": "node server/scripts/migrateToGoogleSheets.js --table=conversations",
+    "migrate:feedback": "node server/scripts/migrateToGoogleSheets.js --table=feedback"
   },
   "dependencies": {
     "@sentry/react": "^7.101.1",

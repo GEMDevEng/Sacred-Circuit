@@ -1,5 +1,5 @@
 import express from 'express';
-import { saveReflection, findUserByHealingName, getReflectionsByHealingName, getReflectionsByUserId } from '../services/airtableService.js';
+import { saveReflection, findUserByHealingName, getReflectionsByHealingName, getReflectionsByUserId } from '../services/googleSheetsService.js';
 import { validateRequest, reflectionRequestSchema } from '../middleware/validation.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/security.js';

@@ -1,5 +1,5 @@
-import { getAirtableBase } from './airtableService.js';
 import { getAllFeedback } from './feedbackService.js';
+import { getAllFeedback as getAllFeedbackFromSheets } from './googleSheetsService.js';
 
 /**
  * Get admin dashboard statistics
@@ -7,37 +7,25 @@ import { getAllFeedback } from './feedbackService.js';
  */
 export const getAdminStats = async () => {
   try {
-    // Get Airtable base
-    const base = getAirtableBase();
-    
-    // Get user statistics
-    const usersTable = base('Users');
-    const userRecords = await usersTable.select().all();
-    const totalUsers = userRecords.length;
-    
-    // Calculate active users (users who logged in within the last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const activeUsers = userRecords.filter(record => {
-      const lastLoginDate = record.get('Last Login Date');
-      return lastLoginDate && new Date(lastLoginDate) >= thirtyDaysAgo;
-    }).length;
-    
-    // Get feedback statistics
+    // Get feedback statistics from Google Sheets
     const allFeedback = await getAllFeedback();
     const totalFeedback = allFeedback.length;
-    
+
     // Count new feedback
     const newFeedback = allFeedback.filter(item => item.status === 'New').length;
-    
+
     // Count resolved feedback
     const resolvedFeedback = allFeedback.filter(item => item.status === 'Resolved').length;
-    
+
+    // For now, return simplified stats until we implement user tracking in Google Sheets
+    // TODO: Implement user statistics when user management is fully migrated
+    const totalUsers = 0; // Placeholder - will be implemented with user sheet access
+    const activeUsers = 0; // Placeholder - will be implemented with user activity tracking
+
     // Get error rate (mock data for now)
     // In a real application, this would come from your error tracking system
     const errorRate = 1.2;
-    
+
     return {
       totalUsers,
       activeUsers,
@@ -59,42 +47,24 @@ export const getAdminStats = async () => {
  */
 export const getUserActivity = async (days = 30) => {
   try {
-    // Get Airtable base
-    const base = getAirtableBase();
-    
-    // Calculate start date
+    // TODO: Implement user activity tracking with Google Sheets
+    // For now, return mock data until we implement login tracking
+    console.warn('User activity tracking not yet implemented for Google Sheets');
+
+    // Return mock activity data
+    const activityData = [];
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    
-    // Get user login records
-    const loginRecordsTable = base('Login Records');
-    const loginRecords = await loginRecordsTable.select({
-      filterByFormula: `IS_AFTER({Timestamp}, '${startDate.toISOString()}')`
-    }).all();
-    
-    // Group by date
-    const activityByDate = {};
-    
-    loginRecords.forEach(record => {
-      const timestamp = record.get('Timestamp');
-      const date = new Date(timestamp).toISOString().split('T')[0];
-      
-      if (!activityByDate[date]) {
-        activityByDate[date] = 0;
-      }
-      
-      activityByDate[date]++;
-    });
-    
-    // Convert to array format
-    const activityData = Object.entries(activityByDate).map(([date, count]) => ({
-      date,
-      count
-    }));
-    
-    // Sort by date
-    activityData.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() - i);
+
+      activityData.push({
+        date: date.toISOString().split('T')[0],
+        count: Math.floor(Math.random() * 10) // Mock data
+      });
+    }
+
     return activityData;
   } catch (error) {
     console.error('Error getting user activity:', error);

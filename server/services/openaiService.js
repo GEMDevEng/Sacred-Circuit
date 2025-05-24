@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
-import Airtable from 'airtable';
+import { storeConversation as storeConversationInSheets } from './googleSheetsService.js';
 
 dotenv.config();
 
@@ -30,29 +30,7 @@ try {
   };
 }
 
-// Initialize Airtable for conversation storage
-let base;
-let conversationsTable;
 
-try {
-  Airtable.configure({
-    apiKey: process.env.AIRTABLE_API_KEY,
-  });
-
-  base = Airtable.base(process.env.AIRTABLE_BASE_ID);
-  conversationsTable = base('Conversations');
-} catch (error) {
-  console.warn('Airtable API key or base ID missing or invalid. Conversation storage will be mocked.');
-  // Create mock functions for development
-  conversationsTable = {
-    create: async () => ({
-      id: 'mock-id-' + Date.now(),
-      fields: {
-        'Timestamp': new Date().toISOString()
-      }
-    })
-  };
-}
 
 // System prompt for the spiritual guidance chatbot
 const SYSTEM_PROMPT = `
@@ -124,7 +102,7 @@ export async function processChat(message, healingName, storeConversation = fals
 }
 
 /**
- * Store a conversation in Airtable
+ * Store a conversation using Google Sheets service
  * @param {Object} conversationData - The conversation data
  * @param {string} conversationData.healingName - The user's healing name
  * @param {string} conversationData.userMessage - The user's message
@@ -135,30 +113,9 @@ export async function processChat(message, healingName, storeConversation = fals
  */
 export async function storeConversation(conversationData) {
   try {
-    const { healingName, userMessage, aiResponse, timestamp, userId } = conversationData;
-
-    // Create conversation record
-    const conversationRecord = {
-      'Healing Name': healingName,
-      'User Message': userMessage,
-      'AI Response': aiResponse,
-      'Timestamp': timestamp || new Date().toISOString(),
-      'Consent Given': true
-    };
-
-    // Add user reference if available
-    if (userId) {
-      conversationRecord['User'] = [userId];
-    }
-
-    // Store in Airtable
-    const record = await conversationsTable.create(conversationRecord);
-
-    return {
-      id: record.id,
-      timestamp: record.fields['Timestamp'],
-      success: true
-    };
+    // Use the Google Sheets service to store the conversation
+    const result = await storeConversationInSheets(conversationData);
+    return result;
   } catch (error) {
     console.error('Failed to store conversation:', error);
     throw new Error('Failed to store conversation');
