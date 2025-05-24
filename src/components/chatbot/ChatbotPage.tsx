@@ -1,19 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Info, Lock, ArrowRight } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Info, Lock, ArrowRight, MessageSquare, Settings, Heart, Sparkles, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import PageTransition from '../common/PageTransition';
 import Button from '../common/Button';
 import { Input, TextArea, Checkbox } from '../common/form';
-import { sendChatMessage, ChatRequest } from '../../utils/api';
+import { sendChatMessage, ChatRequest, createConversation, getUserConversations } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { ChatMessage as ChatMessageType, Conversation, SpiritualContext } from '../../types';
+import ChatMessage from './ChatMessage';
+import TypingIndicator from './TypingIndicator';
+import ConversationHistory from './ConversationHistory';
 
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
+interface Message extends ChatMessageType {
+  exercises?: any[];
+  recommendations?: any[];
 }
 
 const ChatbotPage = () => {
@@ -24,7 +26,8 @@ const ChatbotPage = () => {
       id: '1',
       content: 'Welcome to your Sacred Healing space. How are you feeling today?',
       sender: 'bot',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
+      status: 'sent'
     },
   ]);
   const [input, setInput] = useState('');
@@ -38,6 +41,11 @@ const ChatbotPage = () => {
   const [isNameInputVisible, setIsNameInputVisible] = useState(!healingName);
   const [isLoading, setIsLoading] = useState(false);
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [spiritualContext, setSpiritualContext] = useState<SpiritualContext>({});
+  const [isTyping, setIsTyping] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -59,8 +67,93 @@ const ChatbotPage = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Load conversations for authenticated users
+  useEffect(() => {
+    if (isAuthenticated && showHistory) {
+      loadConversations();
+    }
+  }, [isAuthenticated, showHistory]);
+
+  // Initialize spiritual context
+  useEffect(() => {
+    if (user) {
+      setSpiritualContext({
+        journeyStage: 'beginning',
+        sessionCount: 1,
+        healingGoals: user.goals ? [user.goals] : []
+      });
+    }
+  }, [user]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadConversations = async () => {
+    try {
+      const userConversations = await getUserConversations();
+      setConversations(userConversations);
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+    }
+  };
+
+  const createNewConversation = async () => {
+    try {
+      const conversation = await createConversation({
+        healingName: healingName || user?.healingName,
+        title: 'New Sacred Conversation',
+        tags: ['healing', 'guidance'],
+        metadata: { context: spiritualContext }
+      });
+
+      setCurrentConversation(conversation);
+      setMessages([{
+        id: '1',
+        content: 'Welcome to your Sacred Healing space. How are you feeling today?',
+        sender: 'bot',
+        timestamp: new Date().toISOString(),
+        status: 'sent'
+      }]);
+      toast.success('New conversation started');
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    }
+  };
+
+  const selectConversation = async (conversation: Conversation) => {
+    try {
+      setCurrentConversation(conversation);
+      setMessages([{
+        id: '1',
+        content: 'Welcome back to your Sacred Healing space.',
+        sender: 'bot',
+        timestamp: new Date().toISOString(),
+        status: 'sent'
+      }]);
+      setShowHistory(false);
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
+  };
+
+  const handleRetryMessage = async (messageId: string) => {
+    const failedMessage = messages.find(msg => msg.id === messageId);
+    if (!failedMessage || failedMessage.sender !== 'user') return;
+
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    setInput(failedMessage.content);
+    await handleSendMessage();
+  };
+
+  const handleCopyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success('Message copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+      toast.error('Failed to copy message');
+    }
   };
 
   const handleSendMessage = async () => {
@@ -76,7 +169,8 @@ const ChatbotPage = () => {
         id: Date.now().toString(),
         content: `Thank you, ${input.trim()}. How can I support your healing journey today?`,
         sender: 'bot',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
+        status: 'sent'
       };
 
       setMessages(prev => [...prev, welcomeMessage]);
@@ -88,34 +182,56 @@ const ChatbotPage = () => {
       id: Date.now().toString(),
       content: input,
       sender: 'user',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
+      status: 'sending',
+      conversationId: currentConversation?.id
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setIsTyping(true);
 
     try {
-      // Create chat request
-      const chatRequest: ChatRequest = {
+      // Update user message status to sent
+      setMessages(prev => prev.map(msg =>
+        msg.id === userMessage.id ? { ...msg, status: 'sent' } : msg
+      ));
+
+      // Create enhanced chat request
+      const chatRequest = {
         message: input,
-        healingName,
-        storeConversation: consent
+        healingName: healingName || user?.healingName || 'Seeker',
+        storeConversation: consent,
+        conversationId: currentConversation?.id,
+        context: {
+          ...spiritualContext,
+          sessionCount: Math.ceil(messages.length / 2) + 1
+        }
       };
 
-      // Send message to API - use secure endpoint if authenticated
+      // Send message to API
       const response = await sendChatMessage(chatRequest, isAuthenticated);
 
       // Create bot message from response
       const botMessage: Message = {
-        id: Date.now().toString(),
+        id: response.messageId || Date.now().toString(),
         content: response.message,
         sender: 'bot',
-        timestamp: new Date(response.timestamp),
+        timestamp: response.timestamp,
+        status: 'sent',
+        conversationId: response.conversationId,
+        metadata: response.metadata,
+        exercises: response.exercises,
+        recommendations: response.recommendations
       };
 
-      // Add bot message to chat
       setMessages(prev => [...prev, botMessage]);
+
+      // Update spiritual context based on response
+      if (response.metadata?.context) {
+        setSpiritualContext(prev => ({ ...prev, ...response.metadata.context }));
+      }
 
       // If this is the first message after setting healing name, suggest reflection
       if (messages.length === 1 && !isNameInputVisible) {
@@ -124,7 +240,8 @@ const ChatbotPage = () => {
             id: Date.now().toString(),
             content: "As you continue your healing journey, consider recording your reflections. This can help track your progress and insights over time.",
             sender: 'bot',
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
+            status: 'sent'
           };
           setMessages(prev => [...prev, suggestionMessage]);
         }, 2000);
@@ -132,6 +249,12 @@ const ChatbotPage = () => {
 
     } catch (error) {
       console.error('Error sending message:', error);
+
+      // Update user message status to failed
+      setMessages(prev => prev.map(msg =>
+        msg.id === userMessage.id ? { ...msg, status: 'failed' } : msg
+      ));
+
       toast.error('Failed to send message. Please try again.');
 
       // Add error message to chat
@@ -139,12 +262,14 @@ const ChatbotPage = () => {
         id: Date.now().toString(),
         content: "I'm sorry, I couldn't process your message. Please try again.",
         sender: 'bot',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
+        status: 'sent'
       };
 
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
@@ -163,7 +288,7 @@ const ChatbotPage = () => {
     <PageTransition>
       <section className="py-8">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl md:text-3xl font-serif">Sacred Healing Companion</h1>
               {isAuthenticated && (
@@ -174,37 +299,90 @@ const ChatbotPage = () => {
               )}
             </div>
 
-            {/* Chat Container */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="flex gap-4 h-[calc(100vh-12rem)]">
+              {/* Conversation History Sidebar */}
+              <AnimatePresence>
+                {showHistory && isAuthenticated && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 320, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <ConversationHistory
+                      conversations={conversations}
+                      onSelectConversation={selectConversation}
+                      onCreateConversation={createNewConversation}
+                      onUpdateConversation={() => {}}
+                      onArchiveConversation={() => {}}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Chat Container */}
+              <div className="flex-1 bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 flex flex-col">
               {/* Header */}
               <div className="bg-primary-600 text-white p-4 flex justify-between items-center">
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
-                  <span className="font-medium">Active Session</span>
-                </div>
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="text-white/80 hover:text-white transition-colors"
-                    onClick={() => setShowInfoTooltip(!showInfoTooltip)}
-                    aria-label="Information about the chatbot"
-                  >
-                    <Info size={18} />
-                  </button>
-                  <AnimatePresence>
-                    {showInfoTooltip && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute right-0 top-8 w-64 bg-white text-neutral-800 p-3 rounded-lg shadow-lg z-10 text-sm"
-                      >
-                        <p className="mb-2">This AI companion is designed to support your healing journey.</p>
-                        <p>Your conversations are private and only stored with your consent.</p>
-                        <div className="absolute top-0 right-4 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-white"></div>
-                      </motion.div>
+                  <div>
+                    <span className="font-medium">
+                      {currentConversation?.title || 'Active Session'}
+                    </span>
+                    {healingName && (
+                      <p className="text-xs text-white/70 mt-1">
+                        Guiding {healingName} on their healing journey
+                      </p>
                     )}
-                  </AnimatePresence>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {isAuthenticated && (
+                    <>
+                      <button
+                        type="button"
+                        className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
+                        onClick={() => setShowHistory(!showHistory)}
+                        aria-label="Toggle conversation history"
+                      >
+                        <MessageSquare size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
+                        onClick={createNewConversation}
+                        aria-label="Start new conversation"
+                      >
+                        <Sparkles size={18} />
+                      </button>
+                    </>
+                  )}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
+                      onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+                      aria-label="Information about the chatbot"
+                    >
+                      <Info size={18} />
+                    </button>
+                    <AnimatePresence>
+                      {showInfoTooltip && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute right-0 top-8 w-64 bg-white text-neutral-800 p-3 rounded-lg shadow-lg z-10 text-sm"
+                        >
+                          <p className="mb-2">This enhanced AI companion provides personalized spiritual guidance and healing recommendations.</p>
+                          <p>Your conversations are private and only stored with your consent.</p>
+                          <div className="absolute top-0 right-4 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-white"></div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
@@ -228,47 +406,20 @@ const ChatbotPage = () => {
                 )}
 
                 {messages.map((message) => (
-                  <motion.div
+                  <ChatMessage
                     key={message.id}
-                    initial={{ opacity: 0, y: 10, x: message.sender === 'user' ? 10 : -10 }}
-                    animate={{ opacity: 1, y: 0, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`mb-4 flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-                        message.sender === 'user'
-                          ? 'bg-primary-600 text-white rounded-tr-none'
-                          : 'bg-white border border-gray-200 text-neutral-800 rounded-tl-none'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className={`text-xs ${message.sender === 'user' ? 'text-white/70' : 'text-neutral-500'}`}>
-                          {formatTime(message.timestamp)}
-                        </p>
-                        {message.sender === 'user' && consent && (
-                          <span className="text-xs text-white/70 flex items-center">
-                            <Lock size={10} className="mr-1" />
-                            Stored
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
+                    message={message}
+                    exercises={message.exercises}
+                    recommendations={message.recommendations}
+                    onRetry={() => handleRetryMessage(message.id)}
+                    onCopy={handleCopyMessage}
+                  />
                 ))}
 
-                {isLoading && (
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-white border border-gray-200 text-neutral-800 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
-                      <div className="flex space-x-2 items-center">
-                        <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse delay-150"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse delay-300"></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <TypingIndicator
+                  isVisible={isTyping}
+                  healingName="Sacred Guide"
+                />
 
                 <div ref={messagesEndRef} />
               </div>
@@ -346,6 +497,7 @@ const ChatbotPage = () => {
                     </div>
                   </div>
                 )}
+              </div>
               </div>
             </div>
 

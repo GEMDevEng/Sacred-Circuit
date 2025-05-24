@@ -1,6 +1,16 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import Airtable from 'airtable';
+import {
+  generateContextualPrompt,
+  getPersonalizedExercises,
+  generateHealingRecommendations,
+  extractContextFromHistory
+} from './spiritualGuidanceService.js';
+import {
+  getConversationMessages,
+  addMessageToConversation
+} from './conversationService.js';
 
 dotenv.config();
 
@@ -75,23 +85,61 @@ The user will interact with you using their "Healing Name" - a pseudonym they've
 `;
 
 /**
- * Process a chat message and get a response from OpenAI
+ * Process a chat message and get a response from OpenAI with enhanced context
  * @param {string} message - The user's message
  * @param {string} healingName - The user's healing name
  * @param {boolean} storeConversation - Whether to store the conversation
  * @param {string} [userId] - Optional user ID for authenticated users
+ * @param {string} [conversationId] - Optional conversation ID for context
+ * @param {Object} [context] - Optional spiritual context
  * @returns {Promise<Object>} - The AI response
  */
-export async function processChat(message, healingName, storeConversation = false, userId = null) {
+export async function processChat(
+  message,
+  healingName,
+  storeConversation = false,
+  userId = null,
+  conversationId = null,
+  context = {}
+) {
+  const startTime = Date.now();
+
   try {
     // Create conversation context
     const userIdentifier = healingName || 'Seeker';
+    let conversationHistory = [];
+    let enhancedContext = { ...context };
 
-    // Create messages array with system prompt
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `${userIdentifier}: ${message}` }
-    ];
+    // Get conversation history if conversationId is provided
+    if (conversationId && storeConversation) {
+      try {
+        conversationHistory = await getConversationMessages(conversationId, 10); // Last 10 messages
+
+        // Extract context from history if not provided
+        if (Object.keys(context).length === 0) {
+          enhancedContext = extractContextFromHistory(conversationHistory);
+        }
+      } catch (error) {
+        console.warn('Could not retrieve conversation history:', error.message);
+      }
+    }
+
+    // Generate contextual system prompt
+    const systemPrompt = generateContextualPrompt(enhancedContext);
+
+    // Build messages array with system prompt and history
+    const messages = [{ role: "system", content: systemPrompt }];
+
+    // Add conversation history (convert to OpenAI format)
+    conversationHistory.forEach(msg => {
+      messages.push({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.sender === 'user' ? `${userIdentifier}: ${msg.content}` : msg.content
+      });
+    });
+
+    // Add current user message
+    messages.push({ role: "user", content: `${userIdentifier}: ${message}` });
 
     // Add user ID to system message if available (for authenticated users)
     if (userId) {
@@ -103,19 +151,72 @@ export async function processChat(message, healingName, storeConversation = fals
       model: "gpt-4o",
       messages: messages,
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: 800, // Increased for more comprehensive responses
       // Enable Zero Data Retention if user doesn't consent to storage
       user: !storeConversation ? `zdr_${Date.now()}` : undefined
     });
+
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
 
     // Log consent status
     if (!storeConversation) {
       console.log('User opted out of conversation storage (Zero Data Retention)');
     }
 
+    const aiResponse = response.choices[0].message.content;
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Store messages in conversation if enabled
+    if (conversationId && storeConversation) {
+      try {
+        // Store user message
+        await addMessageToConversation({
+          conversationId,
+          content: message,
+          sender: 'user',
+          metadata: {
+            healingName,
+            userId,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        // Store AI response
+        await addMessageToConversation({
+          conversationId,
+          content: aiResponse,
+          sender: 'bot',
+          metadata: {
+            model: 'gpt-4o',
+            tokens: response.usage?.total_tokens,
+            responseTime,
+            temperature: 0.7,
+            context: enhancedContext
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to store messages in conversation:', error.message);
+      }
+    }
+
+    // Get personalized recommendations
+    const exercises = getPersonalizedExercises(enhancedContext);
+    const recommendations = generateHealingRecommendations(enhancedContext);
+
     return {
-      message: response.choices[0].message.content,
-      timestamp: new Date().toISOString()
+      message: aiResponse,
+      timestamp: new Date().toISOString(),
+      conversationId,
+      messageId,
+      metadata: {
+        tokens: response.usage?.total_tokens,
+        model: 'gpt-4o',
+        responseTime,
+        context: enhancedContext
+      },
+      exercises: exercises.slice(0, 2), // Include top 2 exercises
+      recommendations: recommendations.slice(0, 1) // Include top recommendation
     };
   } catch (error) {
     console.error('OpenAI API error:', error);

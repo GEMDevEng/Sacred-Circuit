@@ -3,7 +3,7 @@ import { sendErrorResponse } from '../utils/response-utils.js';
 
 /**
  * Creates a middleware function that validates a request against a schema
- * 
+ *
  * @param {Object} schema - The schema to validate against
  * @param {string} [location='body'] - The request property to validate (body, params, query)
  * @returns {Function} Express middleware function
@@ -12,14 +12,14 @@ export function validateRequest(schema, location = 'body') {
   return (req, res, next) => {
     const data = req[location];
     const { isValid, errors } = validateSchema(data, schema);
-    
+
     if (!isValid) {
       return sendErrorResponse(res, {
         message: 'Validation error',
         errors
       }, 400);
     }
-    
+
     next();
   };
 }
@@ -42,6 +42,36 @@ export const chatRequestSchema = {
     },
     storeConversation: {
       type: 'boolean'
+    },
+    conversationId: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 100
+    },
+    context: {
+      type: 'object',
+      properties: {
+        journeyStage: {
+          type: 'string',
+          enum: ['beginning', 'exploring', 'deepening', 'integrating']
+        },
+        currentMood: {
+          type: 'string',
+          enum: ['peaceful', 'anxious', 'curious', 'struggling', 'grateful']
+        },
+        practicePreferences: {
+          type: 'array',
+          items: { type: 'string' }
+        },
+        healingGoals: {
+          type: 'array',
+          items: { type: 'string' }
+        },
+        sessionCount: {
+          type: 'number',
+          minimum: 1
+        }
+      }
     }
   }
 };

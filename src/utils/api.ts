@@ -119,13 +119,16 @@ export interface ReflectionRequest {
 }
 
 /**
- * Sends a chat message to the API
+ * Sends a chat message to the API with enhanced context
  *
  * @param data - The chat request data
  * @param isAuthenticated - Whether the user is authenticated
  * @returns A promise resolving to the chat response
  */
-export const sendChatMessage = async (data: ChatRequest, isAuthenticated: boolean = false): Promise<ChatResponse> => {
+export const sendChatMessage = async (data: ChatRequest & {
+  conversationId?: string;
+  context?: any;
+}, isAuthenticated: boolean = false): Promise<ChatResponse> => {
   try {
     // Validate input
     if (!isValidChatMessage(data.message)) {
@@ -139,10 +142,15 @@ export const sendChatMessage = async (data: ChatRequest, isAuthenticated: boolea
     }
 
     // Map the request to match backend expectations
-    const payload: ChatRequestType = {
+    const payload: ChatRequestType & {
+      conversationId?: string;
+      context?: any;
+    } = {
       message: data.message,
       healingName: data.healingName,
-      storeConversation: data.storeConversation
+      storeConversation: data.storeConversation,
+      conversationId: data.conversationId,
+      context: data.context
     };
 
     // Use secure endpoint if authenticated
@@ -429,6 +437,172 @@ export const requestPasswordReset = async (email: string): Promise<{ success: bo
   } catch (error) {
     console.error('Password reset request error:', error);
     toast.error('Failed to send password reset email. Please try again.');
+    throw error;
+  }
+};
+
+// Enhanced conversation management API functions
+
+/**
+ * Create a new conversation
+ */
+export const createConversation = async (data: {
+  healingName?: string;
+  title?: string;
+  tags?: string[];
+  metadata?: any;
+}): Promise<any> => {
+  try {
+    const response = await api.post<ApiResponse<any>>('/chat/conversations', data);
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to create conversation');
+    }
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    toast.error('Failed to create conversation. Please try again.');
+    throw error;
+  }
+};
+
+/**
+ * Get user conversations with filtering
+ */
+export const getUserConversations = async (filters: {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  tags?: string;
+  archived?: boolean;
+  limit?: number;
+} = {}): Promise<any[]> => {
+  try {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+
+    const response = await api.get<ApiResponse<{ conversations: any[] }>>(
+      `/chat/conversations?${params.toString()}`
+    );
+
+    if (response.data.success && response.data.data) {
+      return response.data.data.conversations;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to get conversations');
+    }
+  } catch (error) {
+    console.error('Error getting conversations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get conversation thread with messages
+ */
+export const getConversationThread = async (conversationId: string, limit?: number): Promise<any> => {
+  try {
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await api.get<ApiResponse<any>>(`/chat/conversations/${conversationId}${params}`);
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to get conversation thread');
+    }
+  } catch (error) {
+    console.error('Error getting conversation thread:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update conversation metadata
+ */
+export const updateConversation = async (conversationId: string, updates: any): Promise<any> => {
+  try {
+    const response = await api.patch<ApiResponse<any>>(`/chat/conversations/${conversationId}`, updates);
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to update conversation');
+    }
+  } catch (error) {
+    console.error('Error updating conversation:', error);
+    toast.error('Failed to update conversation. Please try again.');
+    throw error;
+  }
+};
+
+/**
+ * Archive/unarchive conversation
+ */
+export const archiveConversation = async (conversationId: string, archived: boolean = true): Promise<any> => {
+  try {
+    const response = await api.post<ApiResponse<any>>(`/chat/conversations/${conversationId}/archive`, { archived });
+
+    if (response.data.success && response.data.data) {
+      toast.success(archived ? 'Conversation archived' : 'Conversation unarchived');
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to archive conversation');
+    }
+  } catch (error) {
+    console.error('Error archiving conversation:', error);
+    toast.error('Failed to archive conversation. Please try again.');
+    throw error;
+  }
+};
+
+/**
+ * Search conversations and messages
+ */
+export const searchConversations = async (query: string, options: {
+  includeMessages?: boolean;
+  limit?: number;
+} = {}): Promise<any[]> => {
+  try {
+    const params = new URLSearchParams({ q: query });
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+
+    const response = await api.get<ApiResponse<{ results: any[] }>>(
+      `/chat/search?${params.toString()}`
+    );
+
+    if (response.data.success && response.data.data) {
+      return response.data.data.results;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to search conversations');
+    }
+  } catch (error) {
+    console.error('Error searching conversations:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get conversation analytics
+ */
+export const getConversationAnalytics = async (days: number = 30): Promise<any> => {
+  try {
+    const response = await api.get<ApiResponse<any>>(`/chat/analytics?days=${days}`);
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.error ?? 'Failed to get analytics');
+    }
+  } catch (error) {
+    console.error('Error getting analytics:', error);
     throw error;
   }
 };

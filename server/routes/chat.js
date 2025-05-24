@@ -5,6 +5,15 @@ import { validateRequest, chatRequestSchema } from '../middleware/validation.js'
 import { authenticateToken } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/security.js';
 import { sendSuccessResponse, handleAndSendError } from '../utils/response-utils.js';
+import {
+  createConversation,
+  getUserConversations,
+  getConversationThread,
+  updateConversation,
+  archiveConversation,
+  searchConversations,
+  getConversationAnalytics
+} from '../services/conversationService.js';
 
 const router = express.Router();
 
@@ -23,22 +32,31 @@ router.post('/',
       // Check if user exists in Airtable (optional)
       const user = await findUserByHealingName(healingName);
 
-      // Process the chat message
-      const response = await processChat(message, healingName, consentToStore);
+      // Get or create conversation ID
+      const { conversationId, context } = req.body;
 
-      // Store conversation if user consented
-      if (consentToStore) {
+      // Process the chat message with enhanced context
+      const response = await processChat(
+        message,
+        healingName,
+        consentToStore,
+        user?.id,
+        conversationId,
+        context
+      );
+
+      // Legacy conversation storage (for backward compatibility)
+      if (consentToStore && !conversationId) {
         try {
           await storeConversation({
             healingName,
             userMessage: message,
             aiResponse: response.message,
             timestamp: response.timestamp,
-            userId: user?.id // Link to user if found
+            userId: user?.id
           });
         } catch (storageError) {
           console.error('Failed to store conversation:', storageError);
-          // Continue with response even if storage fails
         }
       }
 
@@ -64,26 +82,207 @@ router.post('/secure',
       // Include user ID from token in the context
       const userId = req.userId;
 
-      // Process the chat message
-      const response = await processChat(message, healingName, consentToStore, userId);
+      // Get or create conversation ID
+      const { conversationId, context } = req.body;
 
-      // Store conversation if user consented
-      if (consentToStore) {
+      // Process the chat message with enhanced context
+      const response = await processChat(
+        message,
+        healingName,
+        consentToStore,
+        userId,
+        conversationId,
+        context
+      );
+
+      // Legacy conversation storage (for backward compatibility)
+      if (consentToStore && !conversationId) {
         try {
           await storeConversation({
             healingName,
             userMessage: message,
             aiResponse: response.message,
             timestamp: response.timestamp,
-            userId // Use authenticated user ID
+            userId
           });
         } catch (storageError) {
           console.error('Failed to store conversation:', storageError);
-          // Continue with response even if storage fails
         }
       }
 
       return sendSuccessResponse(res, response);
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/chat/conversations
+ * @desc Create a new conversation
+ * @access Private
+ */
+router.post('/conversations',
+  authenticateToken,
+  rateLimit({ maxRequests: 10, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const { healingName, title, tags, metadata } = req.body;
+      const userId = req.user.id;
+
+      const conversation = await createConversation({
+        userId,
+        healingName: healingName || req.user.healingName,
+        title: title || 'New Conversation',
+        tags: tags || [],
+        metadata: metadata || {}
+      });
+
+      return sendSuccessResponse(res, conversation);
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/chat/conversations
+ * @desc Get user conversations with filtering
+ * @access Private
+ */
+router.get('/conversations',
+  authenticateToken,
+  rateLimit({ maxRequests: 30, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const filters = {
+        searchQuery: req.query.search,
+        dateFrom: req.query.dateFrom,
+        dateTo: req.query.dateTo,
+        tags: req.query.tags ? req.query.tags.split(',') : undefined,
+        archived: req.query.archived === 'true',
+        limit: parseInt(req.query.limit) || 50
+      };
+
+      const conversations = await getUserConversations(userId, filters);
+      return sendSuccessResponse(res, { conversations });
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/chat/conversations/:id
+ * @desc Get conversation thread with messages
+ * @access Private
+ */
+router.get('/conversations/:id',
+  authenticateToken,
+  rateLimit({ maxRequests: 50, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const conversationId = req.params.id;
+      const messageLimit = parseInt(req.query.limit) || 100;
+
+      const thread = await getConversationThread(conversationId, messageLimit);
+      return sendSuccessResponse(res, thread);
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route PATCH /api/chat/conversations/:id
+ * @desc Update conversation metadata
+ * @access Private
+ */
+router.patch('/conversations/:id',
+  authenticateToken,
+  rateLimit({ maxRequests: 20, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const conversationId = req.params.id;
+      const updates = req.body;
+
+      const conversation = await updateConversation(conversationId, updates);
+      return sendSuccessResponse(res, conversation);
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route POST /api/chat/conversations/:id/archive
+ * @desc Archive/unarchive a conversation
+ * @access Private
+ */
+router.post('/conversations/:id/archive',
+  authenticateToken,
+  rateLimit({ maxRequests: 20, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const conversationId = req.params.id;
+      const { archived = true } = req.body;
+
+      const conversation = await archiveConversation(conversationId, archived);
+      return sendSuccessResponse(res, conversation);
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/chat/search
+ * @desc Search conversations and messages
+ * @access Private
+ */
+router.get('/search',
+  authenticateToken,
+  rateLimit({ maxRequests: 20, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { q: query, includeMessages = false, limit = 20 } = req.query;
+
+      if (!query) {
+        return sendSuccessResponse(res, { results: [] });
+      }
+
+      const results = await searchConversations(userId, query, {
+        includeMessages: includeMessages === 'true',
+        limit: parseInt(limit)
+      });
+
+      return sendSuccessResponse(res, { results });
+    } catch (error) {
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/chat/analytics
+ * @desc Get conversation analytics
+ * @access Private
+ */
+router.get('/analytics',
+  authenticateToken,
+  rateLimit({ maxRequests: 10, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { days = 30 } = req.query;
+
+      const analytics = await getConversationAnalytics(userId, {
+        days: parseInt(days)
+      });
+
+      return sendSuccessResponse(res, analytics);
     } catch (error) {
       return handleAndSendError(res, error);
     }
