@@ -1,8 +1,54 @@
 import { ArrowRight } from 'lucide-react';
 import PageTransition from '../common/PageTransition';
 import Button from '../common/Button';
+import { useABTest, getVariantContent, trackConversion } from '../../utils/abTesting';
 
 const LandingPage = () => {
+  // A/B Testing hooks
+  const ctaTest = useABTest('landing_page_cta');
+  const formIntroTest = useABTest('form_introduction');
+
+  // Handle form button click with tracking
+  const handleFormClick = () => {
+    ctaTest.trackEvent('form_click');
+    window.open(process.env.REACT_APP_GOOGLE_FORMS_URL || 'https://forms.google.com/your-form-id', '_blank');
+  };
+
+  // Get variant content for CTA
+  const ctaContent = getVariantContent('landing_page_cta', {
+    original: {
+      title: 'Begin Your Healing Journey',
+      subtitle: 'A sacred space for self-discovery, spiritual growth, and healing. Connect with guidance tailored to your personal journey.',
+      buttonText: 'Start Your Healing Journey'
+    },
+    spiritual_focus: {
+      title: 'Awaken Your Sacred Healing Path',
+      subtitle: 'Step into a mystical realm of transformation where ancient wisdom meets modern guidance. Your soul\'s journey awaits.',
+      buttonText: 'Enter Your Sacred Space'
+    },
+    urgency_focus: {
+      title: 'Transform Your Life Today',
+      subtitle: 'Join thousands who have already begun their healing transformation. Your journey to wellness starts now.',
+      buttonText: 'Start Healing Now'
+    }
+  });
+
+  // Get variant content for form introduction
+  const formIntroContent = getVariantContent('form_introduction', {
+    standard: {
+      title: 'Your Sacred Intake Form',
+      description: 'A gentle, thoughtful form designed to understand your unique healing journey and goals.'
+    },
+    personal: {
+      title: 'Tell Us About Your Healing Story',
+      description: 'Share your personal journey with us so we can create a truly customized healing experience just for you.'
+    },
+    mystical: {
+      title: 'The Gateway to Your Transformation',
+      description: 'This sacred portal gathers the essence of your being to weave a personalized tapestry of healing wisdom.'
+    }
+  });
+
   return (
     <PageTransition>
       {/* Hero Section */}
@@ -11,20 +57,20 @@ const LandingPage = () => {
         <div className="container-custom py-16 md:py-28 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-serif mb-6 leading-tight">
-              Begin Your Healing Journey
+              {ctaContent.title}
             </h1>
             <p className="text-lg md:text-xl mb-8 text-white/90 max-w-2xl mx-auto">
-              A sacred space for self-discovery, spiritual growth, and healing. Connect with guidance tailored to your personal journey.
+              {ctaContent.subtitle}
             </p>
             <Button
               variant="accent"
               size="lg"
               icon={<ArrowRight size={20} />}
               iconPosition="right"
-              onClick={() => window.open('https://example.typeform.com', '_blank')}
-              aria-label="Start Your Healing Journey"
+              onClick={handleFormClick}
+              aria-label={ctaContent.buttonText}
             >
-              Start Your Healing Journey
+              {ctaContent.buttonText}
             </Button>
           </div>
         </div>
@@ -145,28 +191,137 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Testimonial Section */}
-      <section className="py-16 md:py-24 bg-white">
+      {/* Form Preview Section */}
+      <section className="py-16 md:py-24 bg-gradient-to-br from-primary-50 to-secondary-50">
         <div className="container-custom">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif mb-6">Healing Experiences</h2>
+            <h2 className="text-3xl md:text-4xl font-serif mb-6">{formIntroContent.title}</h2>
             <p className="text-neutral-600 max-w-2xl mx-auto">
-              Stories from those who have walked the path of healing with our spiritual companion.
+              {formIntroContent.description}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-neutral-50 p-8 rounded-xl shadow-sm">
-              <p className="text-neutral-600 mb-6 italic">
-                "This healing journey has been transformative. The guidance I received helped me connect with my inner wisdom in ways I never thought possible."
-              </p>
-              <p className="font-medium">— Healing Name: Serene Oak</p>
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
+              <h3 className="text-2xl font-serif mb-8 text-center text-primary-600">What We'll Ask You</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="border-l-4 border-primary-400 pl-4">
+                    <h4 className="font-semibold text-lg mb-2">Your Healing Name</h4>
+                    <p className="text-neutral-600">A sacred name that represents your healing journey - this can be your given name or a name that feels meaningful to you.</p>
+                  </div>
+
+                  <div className="border-l-4 border-accent-400 pl-4">
+                    <h4 className="font-semibold text-lg mb-2">Healing Goals</h4>
+                    <p className="text-neutral-600">Share what you hope to achieve through your healing journey - physical, emotional, or spiritual aspirations.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="border-l-4 border-secondary-400 pl-4">
+                    <h4 className="font-semibold text-lg mb-2">Fasting Experience</h4>
+                    <p className="text-neutral-600">Tell us about your experience with fasting or cleansing practices to personalize your guidance.</p>
+                  </div>
+
+                  <div className="border-l-4 border-primary-400 pl-4">
+                    <h4 className="font-semibold text-lg mb-2">Email Preferences</h4>
+                    <p className="text-neutral-600">Choose whether you'd like to receive our gentle email guidance and milestone reminders.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center mt-10">
+                <p className="text-neutral-600 mb-6">The form takes just 2-3 minutes to complete and helps us create a personalized experience for you.</p>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    formIntroTest.trackEvent('form_preview_click');
+                    handleFormClick();
+                  }}
+                  aria-label="Complete Your Sacred Intake Form"
+                >
+                  Complete Your Sacred Intake Form
+                </Button>
+              </div>
             </div>
-            <div className="bg-neutral-50 p-8 rounded-xl shadow-sm">
+          </div>
+        </div>
+      </section>
+
+      {/* Enhanced Testimonial Section */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="container-custom">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-serif mb-6">Sacred Healing Experiences</h2>
+            <p className="text-neutral-600 max-w-2xl mx-auto">
+              Stories from souls who have walked the path of healing with our spiritual companion.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="text-primary-500 mb-4">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </div>
               <p className="text-neutral-600 mb-6 italic">
-                "Having a private space to reflect on my spiritual growth has been invaluable. I feel supported and guided at every step of my journey."
+                "This healing journey has been transformative. The guidance I received helped me connect with my inner wisdom in ways I never thought possible. The personalized approach made all the difference."
               </p>
-              <p className="font-medium">— Healing Name: Gentle River</p>
+              <div className="border-t border-primary-200 pt-4">
+                <p className="font-medium text-primary-700">— Healing Name: Serene Oak</p>
+                <p className="text-sm text-neutral-500">30-day journey completed</p>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-accent-50 to-accent-100 p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="text-accent-600 mb-4">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </div>
+              <p className="text-neutral-600 mb-6 italic">
+                "Having a private space to reflect on my spiritual growth has been invaluable. I feel supported and guided at every step of my journey. The email reminders came at perfect moments."
+              </p>
+              <div className="border-t border-accent-200 pt-4">
+                <p className="font-medium text-accent-700">— Healing Name: Gentle River</p>
+                <p className="text-sm text-neutral-500">60-day journey completed</p>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-secondary-50 to-secondary-100 p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="text-secondary-700 mb-4">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <p className="text-neutral-600 mb-6 italic">
+                "The combination of AI guidance and human wisdom created something truly special. I discovered parts of myself I didn't know existed. This isn't just a program—it's a sacred experience."
+              </p>
+              <div className="border-t border-secondary-200 pt-4">
+                <p className="font-medium text-secondary-800">— Healing Name: Rising Phoenix</p>
+                <p className="text-sm text-neutral-500">90-day journey completed</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <p className="text-neutral-600 mb-6">Join thousands of souls on their healing journey</p>
+            <div className="flex justify-center items-center space-x-8 text-sm text-neutral-500">
+              <div className="flex items-center">
+                <span className="text-2xl mr-2">🌟</span>
+                <span>4.9/5 Average Rating</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-2xl mr-2">👥</span>
+                <span>5,000+ Healing Journeys</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-2xl mr-2">🔒</span>
+                <span>100% Private & Secure</span>
+              </div>
             </div>
           </div>
         </div>

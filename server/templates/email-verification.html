@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Sacred Journey Email</title>
+  <style>
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      line-height: 1.7;
+      color: #2c3e50;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0;
+      background-color: #f8f9fa;
+    }
+    
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      margin: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+    
+    .content {
+      padding: 40px 30px;
+      text-align: center;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 25px;
+      color: #4facfe;
+    }
+    
+    .healing-name {
+      font-weight: bold;
+      font-style: italic;
+      color: #00f2fe;
+    }
+    
+    .verification-section {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 8px;
+      padding: 30px;
+      margin: 30px 0;
+    }
+    
+    .verification-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      text-decoration: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 500;
+      margin: 20px 0;
+      transition: transform 0.2s ease;
+      box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+    }
+    
+    .verification-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+    }
+    
+    .verification-code {
+      background-color: #f8f9fa;
+      border: 2px dashed #4facfe;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: #2c3e50;
+    }
+    
+    .alternative-text {
+      font-size: 14px;
+      color: #6c757d;
+      margin-top: 20px;
+      line-height: 1.6;
+    }
+    
+    .footer {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      text-align: center;
+      padding: 25px;
+      font-size: 14px;
+    }
+    
+    .footer a {
+      color: #4facfe;
+      text-decoration: none;
+    }
+    
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        margin: 10px;
+        border-radius: 8px;
+      }
+      
+      .content {
+        padding: 30px 20px;
+      }
+      
+      .verification-button {
+        padding: 12px 25px;
+        font-size: 15px;
+      }
+      
+      .verification-code {
+        font-size: 20px;
+        letter-spacing: 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>🌟 Verify Your Sacred Journey Email 🌟</h1>
+    </div>
+    
+    <div class="content">
+      <p class="greeting">Dear <span class="healing-name">{{healingName}}</span>,</p>
+      
+      <p>
+        Thank you for joining the Sacred Healing Journey! To ensure you receive all our healing guidance 
+        and spiritual support, please verify your email address.
+      </p>
+      
+      <div class="verification-section">
+        <h3>Click the button below to verify your email:</h3>
+        
+        <a href="{{verificationUrl}}" class="verification-button">
+          ✨ Verify My Email ✨
+        </a>
+        
+        <p><strong>Or use this verification code:</strong></p>
+        <div class="verification-code">{{verificationCode}}</div>
+        
+        <div class="alternative-text">
+          <p>
+            <strong>Can't click the button?</strong><br>
+            Copy and paste this link into your browser:<br>
+            <a href="{{verificationUrl}}">{{verificationUrl}}</a>
+          </p>
+          
+          <p>
+            <strong>Verification code not working?</strong><br>
+            Visit <a href="{{manualVerificationUrl}}">{{manualVerificationUrl}}</a> 
+            and enter the code manually.
+          </p>
+        </div>
+      </div>
+      
+      <p>
+        Once verified, you'll receive your welcome message and can begin your sacred conversation 
+        with your personal healing companion.
+      </p>
+      
+      <p style="margin-top: 30px; font-style: italic; color: #6c757d;">
+        This verification link will expire in 24 hours for your security.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p>
+        If you didn't request this verification, you can safely ignore this email.
+      </p>
+      
+      <p>
+        Need help? Contact us at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>
+      </p>
+      
+      <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
+        Sacred Healing Companion & Journey Hub<br>
+        Secure • Private • Sacred
+      </p>
+    </div>
+  </div>
+</body>
+</html>

@@ -14,6 +14,7 @@ import authRoutes from './routes/auth.js';
 import feedbackRoutes from './routes/feedback.js';
 import adminRoutes from './routes/admin.js';
 import healthRoutes from './routes/health.js';
+import analyticsRoutes from './routes/analytics.js';
 
 // Middleware
 import { rateLimit, securityHeaders } from './middleware/security.js';
@@ -89,6 +90,7 @@ app.use('/api/reflection', reflectionRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/health', healthRoutes);
 
 // CSRF token endpoint
