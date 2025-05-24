@@ -11,7 +11,7 @@ interface ChatMessageProps {
  * Individual chat message component
  * Displays user or bot messages with appropriate styling and animations
  */
-const ChatMessage = ({ message, isLast = false }: ChatMessageProps) => {
+const ChatMessage = ({ message }: ChatMessageProps) => {
   const isBot = message.sender === 'bot';
 
   return (
@@ -26,7 +26,7 @@ const ChatMessage = ({ message, isLast = false }: ChatMessageProps) => {
           <Bot size={16} className="text-primary-600" />
         </div>
       )}
-      
+
       <div
         className={`max-w-[80%] p-3 rounded-lg ${
           isBot
