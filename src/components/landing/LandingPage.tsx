@@ -1,9 +1,16 @@
+import React, { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import PageTransition from '../common/PageTransition';
 import Button from '../common/Button';
+import Modal from '../common/Modal';
+import SacredIntakeForm from '../forms/SacredIntakeForm';
 import { useABTest, getVariantContent, trackConversion } from '../../utils/abTesting';
 
 const LandingPage = () => {
+  // State for form modal
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [formSubmissionSuccess, setFormSubmissionSuccess] = useState(false);
+
   // A/B Testing hooks
   const ctaTest = useABTest('landing_page_cta');
   const formIntroTest = useABTest('form_introduction');
@@ -11,7 +18,27 @@ const LandingPage = () => {
   // Handle form button click with tracking
   const handleFormClick = () => {
     ctaTest.trackEvent('form_click');
-    window.open(process.env.REACT_APP_GOOGLE_FORMS_URL || 'https://forms.google.com/your-form-id', '_blank');
+    setIsFormModalOpen(true);
+  };
+
+  // Handle form submission success
+  const handleFormSuccess = (formData: any) => {
+    setFormSubmissionSuccess(true);
+    ctaTest.trackEvent('form_complete');
+
+    // Close modal after a delay
+    setTimeout(() => {
+      setIsFormModalOpen(false);
+      setFormSubmissionSuccess(false);
+    }, 3000);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    if (!formSubmissionSuccess) {
+      ctaTest.trackEvent('form_abandon');
+    }
+    setIsFormModalOpen(false);
   };
 
   // Get variant content for CTA
@@ -326,6 +353,22 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Sacred Intake Form Modal */}
+      <Modal
+        isOpen={isFormModalOpen}
+        onClose={handleModalClose}
+        title=""
+        size="lg"
+        closeOnOverlayClick={!formSubmissionSuccess}
+        showCloseButton={!formSubmissionSuccess}
+      >
+        <SacredIntakeForm
+          onSuccess={handleFormSuccess}
+          onClose={handleModalClose}
+          variant={ctaTest.variant}
+        />
+      </Modal>
     </PageTransition>
   );
 };
