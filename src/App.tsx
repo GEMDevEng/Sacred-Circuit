@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/auth';
 
 import Layout from './components/common/Layout';
@@ -11,6 +12,7 @@ import ReflectionPage from './components/landing/ReflectionPage';
 import ReflectionHistory from './components/reflection/ReflectionHistory';
 import AboutPage from './components/landing/AboutPage';
 import PrivacyPage from './components/landing/PrivacyPage';
+import ThemeShowcasePage from './components/landing/ThemeShowcasePage';
 import NotFoundPage from './components/landing/NotFoundPage';
 import FeedbackButton from './components/common/FeedbackButton';
 import SentryErrorBoundary from './components/common/SentryErrorBoundary';
@@ -29,13 +31,15 @@ import { AdminLayout, AdminOverview, FeedbackDashboard } from './components/admi
 function App() {
   return (
     <SentryErrorBoundary>
-      <AuthProvider>
-        <AnimatePresence mode="wait">
-          <Routes>
+      <ThemeProvider>
+        <AuthProvider>
+          <AnimatePresence mode="wait">
+            <Routes>
             <Route path="/" element={<Layout />}>
               {/* Public routes */}
               <Route index element={<LandingPage />} />
               <Route path="about" element={<AboutPage />} />
+              <Route path="themes" element={<ThemeShowcasePage />} />
               <Route path="privacy" element={<PrivacyPage />} />
 
               {/* Authentication routes */}
@@ -90,12 +94,13 @@ function App() {
               {/* Catch-all route */}
               <Route path="*" element={<NotFoundPage />} />
             </Route>
-          </Routes>
-        </AnimatePresence>
+            </Routes>
+          </AnimatePresence>
 
-        {/* Feedback button available on all pages */}
-        <FeedbackButton />
-      </AuthProvider>
+          {/* Feedback button available on all pages */}
+          <FeedbackButton />
+        </AuthProvider>
+      </ThemeProvider>
     </SentryErrorBoundary>
   );
 }
