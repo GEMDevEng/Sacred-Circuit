@@ -14,6 +14,8 @@ export default {
     '^react-router-dom$': '<rootDir>/src/__tests__/__mocks__/react-router-dom.tsx',
     '^../common/Button$': '<rootDir>/src/__tests__/__mocks__/Button.tsx',
     '^../../components/common/Button$': '<rootDir>/src/__tests__/__mocks__/Button.tsx',
+    '^../common/SentryErrorBoundary$': '<rootDir>/src/__tests__/__mocks__/SentryErrorBoundary.tsx',
+    '^../../components/common/SentryErrorBoundary$': '<rootDir>/src/__tests__/__mocks__/SentryErrorBoundary.tsx',
   },
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   testMatch: ['**/__tests__/**/*.test.(ts|tsx)', '**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],

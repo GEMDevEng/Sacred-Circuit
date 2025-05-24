@@ -1,58 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Info, Lock, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import PageTransition from '../common/PageTransition';
 import Button from '../common/Button';
 import { Input, TextArea, Checkbox } from '../common/form';
-import { sendChatMessage, ChatRequest } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-}
+import { useChatbot } from '../../hooks/useChatbot';
+import ChatMessage from './ChatMessage';
+import TypingIndicator from './TypingIndicator';
 
 const ChatbotPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: 'Welcome to your Sacred Healing space. How are you feeling today?',
-      sender: 'bot',
-      timestamp: new Date(),
-    },
-  ]);
-  const [input, setInput] = useState('');
-  const [consent, setConsent] = useState(() => {
-    const savedConsent = localStorage.getItem('chatConsent');
-    return savedConsent ? JSON.parse(savedConsent) : false;
-  });
-  const [healingName, setHealingName] = useState(() => {
-    return user?.healingName || localStorage.getItem('healingName') || '';
-  });
-  const [isNameInputVisible, setIsNameInputVisible] = useState(!healingName);
-  const [isLoading, setIsLoading] = useState(false);
+  // Use the custom chatbot hook
+  const {
+    messages,
+    isLoading,
+    consent,
+    input,
+    isNameInputVisible,
+    setConsent,
+    setInput,
+    handleSendMessage,
+  } = useChatbot(isAuthenticated);
+
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  // Save consent preference to localStorage
-  useEffect(() => {
-    localStorage.setItem('chatConsent', JSON.stringify(consent));
-  }, [consent]);
-
-  // Save healing name to localStorage
-  useEffect(() => {
-    if (healingName) {
-      localStorage.setItem('healingName', healingName);
-    }
-  }, [healingName]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -63,100 +39,13 @@ const ChatbotPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
 
-    if (!healingName && isNameInputVisible) {
-      setHealingName(input.trim());
-      setIsNameInputVisible(false);
-      setInput('');
-
-      // Add welcome message with name
-      const welcomeMessage: Message = {
-        id: Date.now().toString(),
-        content: `Thank you, ${input.trim()}. How can I support your healing journey today?`,
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, welcomeMessage]);
-      return;
-    }
-
-    // Create and add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: input,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      // Create chat request
-      const chatRequest: ChatRequest = {
-        message: input,
-        healingName,
-        storeConversation: consent
-      };
-
-      // Send message to API - use secure endpoint if authenticated
-      const response = await sendChatMessage(chatRequest, isAuthenticated);
-
-      // Create bot message from response
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        content: response.message,
-        sender: 'bot',
-        timestamp: new Date(response.timestamp),
-      };
-
-      // Add bot message to chat
-      setMessages(prev => [...prev, botMessage]);
-
-      // If this is the first message after setting healing name, suggest reflection
-      if (messages.length === 1 && !isNameInputVisible) {
-        setTimeout(() => {
-          const suggestionMessage: Message = {
-            id: Date.now().toString(),
-            content: "As you continue your healing journey, consider recording your reflections. This can help track your progress and insights over time.",
-            sender: 'bot',
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, suggestionMessage]);
-        }, 2000);
-      }
-
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message. Please try again.');
-
-      // Add error message to chat
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: "I'm sorry, I couldn't process your message. Please try again.",
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -227,48 +116,17 @@ const ChatbotPage = () => {
                   </motion.div>
                 )}
 
-                {messages.map((message) => (
-                  <motion.div
+                {messages.map((message, index) => (
+                  <ChatMessage
                     key={message.id}
-                    initial={{ opacity: 0, y: 10, x: message.sender === 'user' ? 10 : -10 }}
-                    animate={{ opacity: 1, y: 0, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`mb-4 flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-                        message.sender === 'user'
-                          ? 'bg-primary-600 text-white rounded-tr-none'
-                          : 'bg-white border border-gray-200 text-neutral-800 rounded-tl-none'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className={`text-xs ${message.sender === 'user' ? 'text-white/70' : 'text-neutral-500'}`}>
-                          {formatTime(message.timestamp)}
-                        </p>
-                        {message.sender === 'user' && consent && (
-                          <span className="text-xs text-white/70 flex items-center">
-                            <Lock size={10} className="mr-1" />
-                            Stored
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
+                    message={message}
+                    isLast={index === messages.length - 1}
+                  />
                 ))}
 
-                {isLoading && (
-                  <div className="flex justify-start mb-4">
-                    <div className="bg-white border border-gray-200 text-neutral-800 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
-                      <div className="flex space-x-2 items-center">
-                        <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse delay-150"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse delay-300"></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {isLoading && <TypingIndicator />}
+                </AnimatePresence>
 
                 <div ref={messagesEndRef} />
               </div>

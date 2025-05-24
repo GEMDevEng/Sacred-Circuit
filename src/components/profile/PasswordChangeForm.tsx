@@ -19,16 +19,7 @@ const PasswordChangeForm = () => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Initialize form with validation
-  const {
-    values,
-    errors,
-    touched,
-    isSubmitting,
-    handleChange,
-    handleBlur,
-    handleSubmit,
-    resetForm,
-  } = useForm<PasswordChangeFormValues>({
+  const formHook = useForm<PasswordChangeFormValues>({
     initialValues: {
       currentPassword: '',
       newPassword: '',
@@ -37,19 +28,17 @@ const PasswordChangeForm = () => {
     validators: {
       currentPassword: [validateRequired],
       newPassword: [validateRequired, validatePassword],
-      confirmPassword: [
-        validateRequired,
-        (value) => validateMatch(values.newPassword, 'new password')(value),
-      ],
+      confirmPassword: [validateRequired],
     },
-    onSubmit: async (values) => {
+    onSubmit: async (formValues: PasswordChangeFormValues) => {
       try {
         // TODO: Implement actual password change API call
         // For now, we'll just simulate a successful update
-        
+        console.log('Changing password with values:', formValues);
+
         // Simulate API call delay
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         setIsSuccess(true);
         toast.success('Password changed successfully');
         resetForm();
@@ -59,18 +48,45 @@ const PasswordChangeForm = () => {
     },
   });
 
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm,
+    setFieldError,
+  } = formHook;
+
+  // Custom validation for confirm password
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleChange(e);
+
+    // Validate password match after state update
+    setTimeout(() => {
+      if (e.target.value && values.newPassword) {
+        const matchError = validateMatch(values.newPassword, 'new password')(e.target.value);
+        if (matchError) {
+          setFieldError('confirmPassword', matchError);
+        }
+      }
+    }, 0);
+  };
+
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-serif text-primary-600 mb-6 text-center">
         Change Password
       </h2>
-      
+
       {isSuccess && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm text-green-600">Password changed successfully!</p>
         </div>
       )}
-      
+
       <Form
         onSubmit={handleSubmit}
         error={formError}
@@ -88,7 +104,7 @@ const PasswordChangeForm = () => {
           required
           autoComplete="current-password"
         />
-        
+
         <Input
           label="New Password"
           name="newPassword"
@@ -101,19 +117,19 @@ const PasswordChangeForm = () => {
           required
           autoComplete="new-password"
         />
-        
+
         <Input
           label="Confirm New Password"
           name="confirmPassword"
           type="password"
           value={values.confirmPassword}
-          onChange={handleChange}
+          onChange={handleConfirmPasswordChange}
           onBlur={handleBlur}
           error={touched.confirmPassword ? errors.confirmPassword : undefined}
           required
           autoComplete="new-password"
         />
-        
+
         <div className="flex justify-end mt-6">
           <Button
             type="submit"

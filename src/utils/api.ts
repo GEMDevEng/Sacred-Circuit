@@ -6,7 +6,7 @@ import { isValidChatMessage, isValidHealingName, isValidReflection } from './val
 // Get API URL from environment or use default
 const API_URL = typeof process !== 'undefined' && process.env && process.env.VITE_API_URL
   ? process.env.VITE_API_URL
-  : 'http://localhost:3001/api';
+  : 'http://localhost:3002/api';
 
 // Create an Axios instance with default config
 const api = axios.create({

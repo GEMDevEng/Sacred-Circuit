@@ -1,6 +1,6 @@
 import express from 'express';
 import { processChat, storeConversation } from '../services/openaiService.js';
-import { findUserByHealingName } from '../services/airtableService.js';
+import { findUserByHealingName } from '../services/googleSheetsService.js';
 import { validateRequest, chatRequestSchema } from '../middleware/validation.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/security.js';

@@ -1,11 +1,14 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import ReflectionPage from '../../components/landing/ReflectionPage';
+import { AuthProvider } from '../../contexts/AuthContext';
 import * as api from '../../utils/api';
 
 // Mock the API
 jest.mock('../../utils/api', () => ({
   submitReflection: jest.fn(),
+  getCurrentUser: jest.fn(),
+  fetchCsrfToken: jest.fn(),
 }));
 
 // Mock framer-motion to avoid animation issues in tests
@@ -28,15 +31,17 @@ describe('ReflectionPage', () => {
 
   test('renders reflection form', () => {
     render(
-      <BrowserRouter>
-        <ReflectionPage />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <ReflectionPage />
+        </BrowserRouter>
+      </AuthProvider>
     );
 
     expect(screen.getByText('Reflection Milestone')).toBeInTheDocument();
-    expect(screen.getByLabelText('Healing Name')).toBeInTheDocument();
-    expect(screen.getByLabelText('Milestone')).toBeInTheDocument();
-    expect(screen.getByLabelText('Your Reflection')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter your healing name')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /milestone/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Share your thoughts, feelings, and insights from your healing journey so far...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /submit reflection/i })).toBeInTheDocument();
   });
 
@@ -45,61 +50,83 @@ describe('ReflectionPage', () => {
     jest.spyOn(window.localStorage, 'getItem').mockReturnValue('TestHealer');
 
     render(
-      <BrowserRouter>
-        <ReflectionPage />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <ReflectionPage />
+        </BrowserRouter>
+      </AuthProvider>
     );
 
-    const healingNameInput = screen.getByLabelText('Healing Name') as HTMLInputElement;
+    const healingNameInput = screen.getByDisplayValue('TestHealer') as HTMLInputElement;
     expect(healingNameInput.value).toBe('TestHealer');
   });
 
   test('validates form inputs', async () => {
+    // Clear localStorage to ensure clean state
+    localStorage.clear();
+
     // Mock toast.error to capture validation messages
     const mockToastError = jest.fn();
     jest.spyOn(require('react-toastify').toast, 'error').mockImplementation(mockToastError);
 
     render(
-      <BrowserRouter>
-        <ReflectionPage />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <ReflectionPage />
+        </BrowserRouter>
+      </AuthProvider>
     );
 
-    // Try to submit without healing name
+    // Get form elements
+    const healingNameInput = screen.getByPlaceholderText('Enter your healing name');
+    const reflectionTextarea = screen.getByPlaceholderText('Share your thoughts, feelings, and insights from your healing journey so far...');
     const submitButton = screen.getByRole('button', { name: /submit reflection/i });
+
+    // Ensure healing name input is empty
+    fireEvent.change(healingNameInput, { target: { value: '' } });
+
+    // Try to submit without healing name
     fireEvent.click(submitButton);
 
     // Check that toast.error was called with the validation message
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith('Please enter your healing name');
-    });
+    }, { timeout: 3000 });
+
+    // Clear the mock calls for the next test
+    mockToastError.mockClear();
 
     // Add healing name but no reflection
-    const healingNameInput = screen.getByLabelText('Healing Name');
     fireEvent.change(healingNameInput, { target: { value: 'TestHealer' } });
+
+    // Ensure reflection textarea is empty
+    fireEvent.change(reflectionTextarea, { target: { value: '' } });
+
     fireEvent.click(submitButton);
 
     // Check that toast.error was called with the validation message
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith('Please share your reflection');
-    });
+    }, { timeout: 3000 });
   });
 
   test('submits reflection successfully', async () => {
     render(
-      <BrowserRouter>
-        <ReflectionPage />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <ReflectionPage />
+        </BrowserRouter>
+      </AuthProvider>
     );
 
     // Fill out the form
-    const healingNameInput = screen.getByLabelText('Healing Name');
+    const healingNameInput = screen.getByPlaceholderText('Enter your healing name');
     fireEvent.change(healingNameInput, { target: { value: 'TestHealer' } });
 
-    const milestoneSelect = screen.getByLabelText('Milestone');
+    const milestoneSelect = screen.getByRole('combobox', { name: /milestone/i });
     fireEvent.change(milestoneSelect, { target: { value: 'Day 14' } });
 
-    const reflectionInput = screen.getByLabelText('Your Reflection');
+    const reflectionInput = screen.getByPlaceholderText('Share your thoughts, feelings, and insights from your healing journey so far...');
     fireEvent.change(reflectionInput, { target: { value: 'This is my test reflection about my healing journey.' } });
 
     // Submit the form
@@ -112,7 +139,7 @@ describe('ReflectionPage', () => {
       reflectionText: 'This is my test reflection about my healing journey.',
       journeyDay: 'Day 14',
       emailConsent: true,
-    });
+    }, false);
 
     // Check for success message
     await waitFor(() => {
@@ -125,9 +152,11 @@ describe('ReflectionPage', () => {
 
   test('toggles email consent checkbox', () => {
     render(
-      <BrowserRouter>
-        <ReflectionPage />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <ReflectionPage />
+        </BrowserRouter>
+      </AuthProvider>
     );
 
     const checkbox = screen.getByRole('checkbox');

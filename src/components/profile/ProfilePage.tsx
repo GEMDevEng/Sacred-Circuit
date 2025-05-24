@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import PageTransition from '../common/PageTransition';
 import ProfileForm from './ProfileForm';
 import PasswordChangeForm from './PasswordChangeForm';
-import Button from '../common/Button';
 
 /**
  * Profile page component

@@ -40,7 +40,6 @@ const RegisterForm = () => {
     handleChange,
     handleBlur,
     handleSubmit,
-    setFieldError,
   } = useForm<RegisterFormValues>({
     initialValues: {
       healingName: '',
@@ -55,7 +54,7 @@ const RegisterForm = () => {
       password: [validateRequired, validatePassword],
       confirmPassword: [
         validateRequired,
-        (value) => validateMatch(values.password, 'password')(value),
+        (value: string): string | undefined => validateMatch(values.password, 'password')(value),
       ],
       agreeTerms: [
         (value) => (value ? undefined : 'You must agree to the terms and privacy policy'),

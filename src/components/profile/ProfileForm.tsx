@@ -41,10 +41,11 @@ const ProfileForm = () => {
       try {
         // TODO: Implement actual profile update API call
         // For now, we'll just simulate a successful update
-        
+        console.log('Updating profile with values:', values);
+
         // Simulate API call delay
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         setIsSuccess(true);
         toast.success('Profile updated successfully');
       } catch (error) {
@@ -58,13 +59,13 @@ const ProfileForm = () => {
       <h2 className="text-2xl font-serif text-primary-600 mb-6 text-center">
         Edit Profile
       </h2>
-      
+
       {isSuccess && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm text-green-600">Profile updated successfully!</p>
         </div>
       )}
-      
+
       <Form
         onSubmit={handleSubmit}
         error={formError}
@@ -82,7 +83,7 @@ const ProfileForm = () => {
           helperText="This name will be used to preserve your privacy"
           required
         />
-        
+
         <Input
           label="Email"
           name="email"
@@ -93,7 +94,7 @@ const ProfileForm = () => {
           error={touched.email ? errors.email : undefined}
           required
         />
-        
+
         <div className="flex justify-end mt-6">
           <Button
             type="submit"

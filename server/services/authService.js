@@ -1,17 +1,9 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import Airtable from 'airtable';
 import dotenv from 'dotenv';
+import { createUser, findUserByHealingName, findUserById, findUserByEmail, updateUser } from './googleSheetsService.js';
 
 dotenv.config();
-
-// Initialize Airtable
-Airtable.configure({
-  apiKey: process.env.AIRTABLE_API_KEY,
-});
-
-const base = Airtable.base(process.env.AIRTABLE_BASE_ID);
-const usersTable = base('Users');
 
 /**
  * Register a new user
@@ -27,22 +19,14 @@ export async function registerUser(userData) {
 
   try {
     // Check if user already exists by email
-    const existingUserByEmail = await usersTable.select({
-      filterByFormula: `{Email} = '${email}'`,
-      maxRecords: 1
-    }).firstPage();
-
-    if (existingUserByEmail && existingUserByEmail.length > 0) {
+    const existingUserByEmail = await findUserByEmail(email);
+    if (existingUserByEmail) {
       throw new Error('User with this email already exists');
     }
 
     // Check if healing name is already taken
-    const existingUserByName = await usersTable.select({
-      filterByFormula: `{Healing Name} = '${healingName}'`,
-      maxRecords: 1
-    }).firstPage();
-
-    if (existingUserByName && existingUserByName.length > 0) {
+    const existingUserByName = await findUserByHealingName(healingName);
+    if (existingUserByName) {
       throw new Error('This healing name is already taken');
     }
 
@@ -50,26 +34,26 @@ export async function registerUser(userData) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new user in Airtable
-    const newUserRecord = await usersTable.create({
-      'Healing Name': healingName,
-      'Email': email,
-      'Password': hashedPassword, // Store hashed password
-      'Role': 'user',
-      'Registration Date': new Date().toISOString(),
-      'Journey Status': 'Active'
+    // Create new user in Google Sheets
+    const newUser = await createUser({
+      healingName,
+      email,
+      passwordHash: hashedPassword,
+      role: 'user',
+      registrationDate: new Date().toISOString(),
+      journeyStatus: 'Active'
     });
 
     // Return user without password
     return {
-      id: newUserRecord.id,
-      healingName: newUserRecord.fields['Healing Name'],
-      email: newUserRecord.fields['Email'],
-      role: newUserRecord.fields['Role'],
-      createdAt: newUserRecord.fields['Registration Date']
+      id: newUser.id,
+      healingName: newUser.healingName,
+      email: newUser.email,
+      role: newUser.role,
+      createdAt: newUser.registrationDate || new Date().toISOString()
     };
   } catch (error) {
-    console.error('Airtable error:', error);
+    console.error('Google Sheets error:', error);
     throw error;
   }
 }
@@ -84,17 +68,12 @@ export async function registerUser(userData) {
 export async function loginUser(email, password) {
   try {
     // Find user by email
-    const records = await usersTable.select({
-      filterByFormula: `{Email} = '${email}'`,
-      maxRecords: 1
-    }).firstPage();
-
-    if (!records || records.length === 0) {
+    const userRecord = await findUserByEmail(email);
+    if (!userRecord) {
       throw new Error('Invalid credentials');
     }
 
-    const userRecord = records[0];
-    const hashedPassword = userRecord.fields['Password'];
+    const hashedPassword = userRecord.passwordHash;
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, hashedPassword);
@@ -110,10 +89,10 @@ export async function loginUser(email, password) {
     // Return user without password and tokens
     const user = {
       id: userRecord.id,
-      healingName: userRecord.fields['Healing Name'],
-      email: userRecord.fields['Email'],
-      role: userRecord.fields['Role'] || 'user',
-      createdAt: userRecord.fields['Registration Date']
+      healingName: userRecord.healingName,
+      email: userRecord.email,
+      role: userRecord.role || 'user',
+      createdAt: userRecord.registrationDate
     };
 
     return {
@@ -135,8 +114,8 @@ export async function loginUser(email, password) {
  */
 export async function getUserById(userId) {
   try {
-    // Get user by ID
-    const userRecord = await usersTable.find(userId);
+    // Get user by ID from Google Sheets
+    const userRecord = await findUserById(userId);
 
     if (!userRecord) {
       return null;
@@ -145,10 +124,10 @@ export async function getUserById(userId) {
     // Return user without password
     return {
       id: userRecord.id,
-      healingName: userRecord.fields['Healing Name'],
-      email: userRecord.fields['Email'],
-      role: userRecord.fields['Role'] || 'user',
-      createdAt: userRecord.fields['Registration Date']
+      healingName: userRecord.healingName,
+      email: userRecord.email,
+      role: userRecord.role || 'user',
+      createdAt: userRecord.registrationDate
     };
   } catch (error) {
     console.error('Error getting user by ID:', error);

@@ -8,6 +8,20 @@ import ForgotPasswordPage from '../../components/auth/ForgotPasswordPage';
 import ProfilePage from '../../components/profile/ProfilePage';
 import * as api from '../../utils/api';
 
+// Mock framer-motion to avoid animation issues in tests
+jest.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    section: ({ children, ...props }: any) => <section {...props}>{children}</section>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
+
+// Mock PageTransition component
+jest.mock('../../components/common/PageTransition', () => {
+  return ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+});
+
 // Mock the API
 jest.mock('../../utils/api', () => ({
   login: jest.fn(),
