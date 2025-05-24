@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Open+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Open+Sans:wght@300;400;500;600;700&family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 /* Import component styles */
 @import './components.css';
 
@@ -13,10 +13,38 @@
 
   body {
     @apply bg-neutral-50 text-neutral-800 font-sans;
+    transition: background-color var(--duration-normal, 300ms) var(--easing-spiritual, ease);
+  }
+
+  /* Theme-aware body classes */
+  body.theme-sacred-lotus {
+    background-image: var(--gradient-spiritual, none);
+  }
+
+  body.theme-forest-sanctuary {
+    background-image: var(--gradient-spiritual, none);
+  }
+
+  body.theme-celestial-healing {
+    background-image: var(--gradient-spiritual, none);
+  }
+
+  body.theme-desert-wisdom {
+    background-image: var(--gradient-spiritual, none);
+  }
+
+  body.theme-ocean-depths {
+    background-image: var(--gradient-spiritual, none);
+  }
+
+  /* Dark mode adjustments */
+  body.mode-dark {
+    @apply bg-neutral-900 text-neutral-100;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+    transition: color var(--duration-normal, 300ms) var(--easing-spiritual, ease);
   }
 
   h1 {
@@ -33,6 +61,19 @@
 
   p {
     @apply leading-relaxed;
+    transition: color var(--duration-normal, 300ms) var(--easing-spiritual, ease);
+  }
+
+  /* Spiritual typography */
+  .spiritual-text {
+    font-family: var(--font-spiritual, 'Cinzel', serif);
+  }
+
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--color-primary-500, #6A9BD8);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 0.25rem);
   }
 }
 
@@ -106,16 +147,84 @@
     @apply mr-2 h-4 w-4 text-primary focus:ring-primary rounded;
   }
 
-  /* Spiritual elements */
+  /* Enhanced spiritual elements */
   .spiritual-quote {
     @apply italic border-l-4 border-primary-300 pl-4 py-2 my-4 text-neutral-700 bg-primary-50 rounded-r-lg;
+    background-image: var(--gradient-primary, none);
+    transition: all var(--duration-normal, 300ms) var(--easing-spiritual, ease);
   }
 
   .meditation-box {
-    @apply bg-secondary-100 p-6 rounded-lg border border-secondary-300 my-4;
+    @apply bg-secondary-100 p-6 rounded-spiritual border border-secondary-300 my-4;
+    background-image: var(--gradient-secondary, none);
+    transition: all var(--duration-normal, 300ms) var(--easing-spiritual, ease);
+    box-shadow: var(--shadow-spiritual, 0 0 20px rgba(180, 140, 255, 0.3));
   }
 
   .healing-highlight {
     @apply bg-accent-100 text-accent-800 px-2 py-1 rounded-md;
+    transition: all var(--duration-normal, 300ms) var(--easing-spiritual, ease);
+  }
+
+  /* New spiritual components */
+  .sacred-card {
+    @apply bg-white rounded-spiritual shadow-spiritual p-6 border border-spiritual-medium;
+    background-image: var(--gradient-spiritual, none);
+    transition: all var(--duration-normal, 300ms) var(--easing-spiritual, ease);
+  }
+
+  .sacred-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow, 0 0 15px rgba(180, 140, 255, 0.4));
+  }
+
+  .spiritual-button {
+    @apply btn bg-spiritual-medium text-spiritual-dark hover:bg-spiritual-dark hover:text-spiritual-light;
+    transition: all var(--duration-normal, 300ms) var(--easing-spiritual, ease);
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  }
+
+  .spiritual-button:hover {
+    box-shadow: var(--shadow-glow, 0 0 15px rgba(180, 140, 255, 0.4));
+    animation: spiritual-glow var(--duration-slow, 2s) var(--easing-spiritual, ease-in-out) infinite;
+  }
+
+  /* Theme-specific animations */
+  .theme-sacred-lotus .animate-theme {
+    animation: lotus-bloom var(--duration-slower, 2s) var(--easing-spiritual, ease-in-out) infinite;
+  }
+
+  .theme-forest-sanctuary .animate-theme {
+    animation: leaf-rustle var(--duration-slow, 4s) var(--easing-spiritual, ease-in-out) infinite;
+  }
+
+  .theme-celestial-healing .animate-theme {
+    animation: star-twinkle var(--duration-slow, 2s) var(--easing-spiritual, ease-in-out) infinite;
+  }
+
+  .theme-desert-wisdom .animate-theme {
+    animation: sand-shift var(--duration-slower, 5s) var(--easing-spiritual, ease-in-out) infinite;
+  }
+
+  .theme-ocean-depths .animate-theme {
+    animation: ocean-wave var(--duration-slower, 4s) var(--easing-spiritual, ease-in-out) infinite;
+  }
+
+  /* Accessibility enhancements */
+  .reduce-motion .animate-theme,
+  .reduce-motion [class*="animate-"] {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .high-contrast {
+    filter: contrast(1.5) !important;
+  }
+
+  .high-contrast .spiritual-quote,
+  .high-contrast .meditation-box,
+  .high-contrast .sacred-card {
+    border-width: 2px;
+    border-color: currentColor;
   }
 }

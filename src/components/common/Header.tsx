@@ -4,6 +4,7 @@ import { Menu, X, User, LogIn, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import ThemeSelector from './ThemeSelector';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,6 +33,7 @@ const Header = () => {
   const publicLinks = [
     { to: '/', label: 'Home' },
     { to: '/about', label: 'About' },
+    { to: '/themes', label: 'Themes' },
   ];
 
   // Protected links only available to authenticated users
@@ -74,79 +76,86 @@ const Header = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                isActive
-                  ? 'text-primary-700 font-medium border-b-2 border-primary'
-                  : 'text-neutral-800 hover:text-primary-600 transition-colors'
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+        <div className="hidden md:flex items-center space-x-6">
+          <nav className="flex items-center space-x-6">
+            {links.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  isActive
+                    ? 'text-primary-700 font-medium border-b-2 border-primary'
+                    : 'text-neutral-800 hover:text-primary-600 transition-colors'
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Theme Selector */}
+          <ThemeSelector compact={true} showPreferences={false} />
 
           {/* Authentication Links */}
-          {isAuthenticated ? (
-            <div className="flex items-center space-x-4">
-              <NavLink
-                to="/profile"
-                className={({ isActive }) =>
-                  `flex items-center space-x-1 ${
-                    isActive
-                      ? 'text-primary-700 font-medium border-b-2 border-primary'
-                      : 'text-neutral-800 hover:text-primary-600 transition-colors'
-                  }`
-                }
-              >
-                <User size={18} />
-                <span>{user?.healingName || 'Profile'}</span>
-              </NavLink>
+          <div className="flex items-center space-x-4">
+            {isAuthenticated ? (
+              <>
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) =>
+                    `flex items-center space-x-1 ${
+                      isActive
+                        ? 'text-primary-700 font-medium border-b-2 border-primary'
+                        : 'text-neutral-800 hover:text-primary-600 transition-colors'
+                    }`
+                  }
+                >
+                  <User size={18} />
+                  <span>{user?.healingName || 'Profile'}</span>
+                </NavLink>
 
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex items-center space-x-1 text-neutral-800 hover:text-primary-600 transition-colors"
-                aria-label="Log out"
-              >
-                <LogOut size={18} />
-                <span>Logout</span>
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-4">
-              <NavLink
-                to="/login"
-                className={({ isActive }) =>
-                  `flex items-center space-x-1 ${
-                    isActive
-                      ? 'text-primary-700 font-medium border-b-2 border-primary'
-                      : 'text-neutral-800 hover:text-primary-600 transition-colors'
-                  }`
-                }
-              >
-                <LogIn size={18} />
-                <span>Login</span>
-              </NavLink>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center space-x-1 text-neutral-800 hover:text-primary-600 transition-colors"
+                  aria-label="Log out"
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/login"
+                  className={({ isActive }) =>
+                    `flex items-center space-x-1 ${
+                      isActive
+                        ? 'text-primary-700 font-medium border-b-2 border-primary'
+                        : 'text-neutral-800 hover:text-primary-600 transition-colors'
+                    }`
+                  }
+                >
+                  <LogIn size={18} />
+                  <span>Login</span>
+                </NavLink>
 
-              <NavLink
-                to="/register"
-                className={({ isActive }) =>
-                  `flex items-center space-x-1 ${
-                    isActive
-                      ? 'text-primary-700 font-medium border-b-2 border-primary'
-                      : 'text-neutral-800 hover:text-primary-600 transition-colors'
-                  }`
-                }
-              >
-                <span>Register</span>
-              </NavLink>
-            </div>
-          )}
-        </nav>
+                <NavLink
+                  to="/register"
+                  className={({ isActive }) =>
+                    `flex items-center space-x-1 ${
+                      isActive
+                        ? 'text-primary-700 font-medium border-b-2 border-primary'
+                        : 'text-neutral-800 hover:text-primary-600 transition-colors'
+                    }`
+                  }
+                >
+                  <span>Register</span>
+                </NavLink>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Mobile Menu Button */}
         <button
