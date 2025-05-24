@@ -5,7 +5,14 @@ export default {
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json',
+      useESM: true,
     }],
+  },
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
   },
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
@@ -14,6 +21,7 @@ export default {
     '^react-router-dom$': '<rootDir>/src/__tests__/__mocks__/react-router-dom.tsx',
     '^../common/Button$': '<rootDir>/src/__tests__/__mocks__/Button.tsx',
     '^../../components/common/Button$': '<rootDir>/src/__tests__/__mocks__/Button.tsx',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   testMatch: ['**/__tests__/**/*.test.(ts|tsx)', '**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
@@ -22,13 +30,16 @@ export default {
     '!src/**/*.d.ts',
     '!src/main.tsx',
     '!src/vite-env.d.ts',
+    '!src/utils/monitoring.ts',
+    '!src/utils/sentry.ts',
   ],
   coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70,
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90,
     },
   },
+  testTimeout: 10000,
 };

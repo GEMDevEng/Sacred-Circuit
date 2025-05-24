@@ -3,6 +3,68 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+import { setupTestUtils } from './__tests__/utils/test-utils';
+
+// Setup test utilities
+setupTestUtils();
+
+// Mock environment variables
+process.env.VITE_API_URL = 'http://localhost:3001';
+process.env.VITE_SENTRY_DSN = 'https://test-dsn@sentry.io/test';
+process.env.VITE_GA_MEASUREMENT_ID = 'GA-TEST-ID';
+process.env.VITE_ENVIRONMENT = 'test';
+process.env.VITE_RELEASE_VERSION = '1.0.0-test';
+
+// Mock fetch globally
+global.fetch = jest.fn();
+
+// Mock crypto for Node.js environment
+if (typeof globalThis.crypto === 'undefined') {
+  const { webcrypto } = require('crypto');
+  globalThis.crypto = webcrypto;
+}
+
+// Suppress console warnings in tests unless explicitly testing them
+const originalWarn = console.warn;
+const originalError = console.error;
+
+beforeEach(() => {
+  // Reset fetch mock
+  (global.fetch as jest.Mock).mockClear();
+});
+
+afterEach(() => {
+  // Clean up any timers
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+// Suppress specific warnings that are expected in test environment
+console.warn = (...args: any[]) => {
+  const message = args[0];
+  if (
+    typeof message === 'string' &&
+    (message.includes('React Router') ||
+     message.includes('Warning: ReactDOM.render') ||
+     message.includes('Warning: componentWillReceiveProps'))
+  ) {
+    return;
+  }
+  originalWarn.apply(console, args);
+};
+
+console.error = (...args: any[]) => {
+  const message = args[0];
+  if (
+    typeof message === 'string' &&
+    (message.includes('Warning: ReactDOM.render') ||
+     message.includes('Warning: componentWillReceiveProps') ||
+     message.includes('The above error occurred'))
+  ) {
+    return;
+  }
+  originalError.apply(console, args);
+};
 
 // Mock the IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {

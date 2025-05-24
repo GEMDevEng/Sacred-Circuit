@@ -11,7 +11,7 @@ const performanceMarks: Record<string, number> = {};
  */
 export const startTiming = (name: string): void => {
   performanceMarks[name] = performance.now();
-  
+
   // Also use the browser's Performance API if available
   if (typeof performance !== 'undefined' && performance.mark) {
     performance.mark(`${name}_start`);
@@ -29,10 +29,10 @@ export const endTiming = (name: string): number | null => {
     console.warn(`No start time found for metric: ${name}`);
     return null;
   }
-  
+
   const endTime = performance.now();
   const duration = endTime - startTime;
-  
+
   // Use the browser's Performance API if available
   if (typeof performance !== 'undefined' && performance.mark && performance.measure) {
     performance.mark(`${name}_end`);
@@ -42,15 +42,15 @@ export const endTiming = (name: string): number | null => {
       console.warn(`Error measuring performance for ${name}:`, e);
     }
   }
-  
+
   // Log the duration in development
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Performance: ${name} took ${duration.toFixed(2)}ms`);
   }
-  
+
   // Clean up
   delete performanceMarks[name];
-  
+
   return duration;
 };
 
@@ -71,7 +71,7 @@ export const trackEvent = (
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Event: ${category} - ${action}${label ? ` - ${label}` : ''}${value !== undefined ? ` - ${value}` : ''}`);
   }
-  
+
   // Send to analytics service in production
   if (process.env.NODE_ENV === 'production') {
     // If using Google Analytics
@@ -95,15 +95,18 @@ export const trackPageView = (path: string, title: string): void => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Page view: ${path} - ${title}`);
   }
-  
+
   // Send to analytics service in production
   if (process.env.NODE_ENV === 'production') {
     // If using Google Analytics
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('config', import.meta.env.VITE_GA_MEASUREMENT_ID, {
-        page_path: path,
-        page_title: title,
-      });
+      const gaId = (import.meta as any).env?.VITE_GA_MEASUREMENT_ID;
+      if (gaId) {
+        (window as any).gtag('config', gaId, {
+          page_path: path,
+          page_title: title,
+        });
+      }
     }
   }
 };
@@ -118,7 +121,7 @@ export const trackError = (error: Error | string, context?: Record<string, any>)
   if (process.env.NODE_ENV !== 'production') {
     console.error('Error:', error, context);
   }
-  
+
   // In production, send to error tracking service
   if (process.env.NODE_ENV === 'production') {
     // Import and use Sentry dynamically to avoid circular dependencies
@@ -148,7 +151,7 @@ export function withPerformanceTracking<T extends (...args: any[]) => any>(
     startTiming(name);
     try {
       const result = fn(...args);
-      
+
       // Handle promises
       if (result instanceof Promise) {
         return result
@@ -161,7 +164,7 @@ export function withPerformanceTracking<T extends (...args: any[]) => any>(
             throw error;
           }) as ReturnType<T>;
       }
-      
+
       endTiming(name);
       return result;
     } catch (error) {

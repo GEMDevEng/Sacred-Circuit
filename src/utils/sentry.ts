@@ -1,19 +1,28 @@
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
+import React from 'react';
+import {
+  useLocation,
+  useNavigationType,
+  createRoutesFromChildren,
+  matchRoutes,
+} from 'react-router-dom';
 
 /**
  * Initialize Sentry for error tracking and monitoring
  */
 export const initSentry = () => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.init({
-      dsn: import.meta.env.VITE_SENTRY_DSN,
+      dsn: sentryDsn,
       integrations: [
         new BrowserTracing({
           // Track navigation between routes
           tracingOrigins: ['localhost', 'sacred-healing-hub.vercel.app'],
           // Customize the sample rate for transactions
-          routeTransactionSampleRate: 0.8,
+          // React Router v6 instrumentation will be set up separately
+          // routingInstrumentation: Sentry.reactRouterV6Instrumentation(...),
         }),
       ],
 
@@ -26,16 +35,16 @@ export const initSentry = () => {
 
       // Enable automatic instrumentation for React components
       // This will track component render times and other performance metrics
-      enableComponentTracing: true,
+      profilesSampleRate: 0.1,
 
       // Only send errors in production
       enabled: process.env.NODE_ENV === 'production',
 
       // Set environment
-      environment: import.meta.env.VITE_ENVIRONMENT || 'development',
+      environment: (import.meta as any).env?.VITE_ENVIRONMENT || 'development',
 
       // Set release version for tracking across deploys
-      release: import.meta.env.VITE_RELEASE_VERSION || 'dev',
+      release: (import.meta as any).env?.VITE_RELEASE_VERSION || 'dev',
 
       // Capture breadcrumbs for better debugging context
       maxBreadcrumbs: 50,
@@ -99,7 +108,8 @@ export const initSentry = () => {
  * @param user User information
  */
 export const setSentryUser = (user: { id: string; healingName: string }) => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.setUser({
       id: user.id,
       username: user.healingName,
@@ -111,7 +121,8 @@ export const setSentryUser = (user: { id: string; healingName: string }) => {
  * Clear user information from Sentry
  */
 export const clearSentryUser = () => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.setUser(null);
   }
 };
@@ -122,7 +133,8 @@ export const clearSentryUser = () => {
  * @param context Additional context information
  */
 export const captureException = (error: Error, context?: Record<string, any>) => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.captureException(error, {
       extra: context,
     });
@@ -142,7 +154,8 @@ export const captureMessage = (
   level: Sentry.SeverityLevel = 'info',
   context?: Record<string, any>
 ) => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.captureMessage(message, {
       level,
       extra: context,
@@ -159,7 +172,8 @@ export const captureMessage = (
  * @returns Transaction object
  */
 export const startTransaction = (name: string, op: string) => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     return Sentry.startTransaction({
       name,
       op,
@@ -174,7 +188,8 @@ export const startTransaction = (name: string, op: string) => {
  * @param value Tag value
  */
 export const setTag = (key: string, value: string) => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.setTag(key, value);
   }
 };
@@ -185,7 +200,8 @@ export const setTag = (key: string, value: string) => {
  * @param value Context value
  */
 export const setExtra = (key: string, value: any) => {
-  if (process.env.NODE_ENV === 'production' && import.meta.env.VITE_SENTRY_DSN) {
+  const sentryDsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+  if (process.env.NODE_ENV === 'production' && sentryDsn) {
     Sentry.setExtra(key, value);
   }
 };
