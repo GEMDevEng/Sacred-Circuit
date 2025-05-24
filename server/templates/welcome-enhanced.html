@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Your Sacred Healing Journey</title>
+  <style>
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      line-height: 1.7;
+      color: #2c3e50;
+      max-width: 650px;
+      margin: 0 auto;
+      padding: 0;
+      background-color: #f8f9fa;
+    }
+    
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      margin: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 40px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      position: relative;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="30" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="70" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="80" r="2.5" fill="rgba(255,255,255,0.1)"/><circle cx="10" cy="60" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
+      opacity: 0.3;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 300;
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .header .subtitle {
+      margin: 10px 0 0 0;
+      font-size: 16px;
+      opacity: 0.9;
+      font-style: italic;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .content {
+      padding: 40px 30px;
+      background-color: #ffffff;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 25px;
+      color: #667eea;
+    }
+    
+    .healing-name {
+      font-weight: bold;
+      font-style: italic;
+      color: #764ba2;
+    }
+    
+    .intro-text {
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.8;
+    }
+    
+    .journey-features {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 8px;
+      padding: 25px;
+      margin: 30px 0;
+    }
+    
+    .journey-features h3 {
+      margin: 0 0 20px 0;
+      color: #2c3e50;
+      font-size: 20px;
+      text-align: center;
+    }
+    
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .feature-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      position: relative;
+      padding-left: 30px;
+    }
+    
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .feature-list li::before {
+      content: '✨';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      font-size: 16px;
+    }
+    
+    .cta-section {
+      text-align: center;
+      margin: 40px 0;
+      padding: 30px;
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      border-radius: 8px;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 500;
+      margin: 15px 0;
+      transition: transform 0.2s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .wisdom-quote {
+      font-style: italic;
+      text-align: center;
+      font-size: 16px;
+      color: #5a6c7d;
+      margin: 30px 0;
+      padding: 20px;
+      border-left: 4px solid #667eea;
+      background-color: #f8f9fa;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .signature {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .footer {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      text-align: center;
+      padding: 30px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    .social-links {
+      margin: 20px 0;
+    }
+    
+    .social-links a {
+      display: inline-block;
+      margin: 0 10px;
+      padding: 8px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      line-height: 24px;
+    }
+    
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        margin: 10px;
+        border-radius: 8px;
+      }
+      
+      .header {
+        padding: 30px 20px;
+      }
+      
+      .header h1 {
+        font-size: 24px;
+      }
+      
+      .content {
+        padding: 30px 20px;
+      }
+      
+      .cta-button {
+        padding: 12px 25px;
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Welcome to Your Sacred Healing Journey</h1>
+      <p class="subtitle">A space for transformation, growth, and inner wisdom</p>
+    </div>
+    
+    <div class="content">
+      <p class="greeting">Beloved <span class="healing-name">{{healingName}}</span>,</p>
+      
+      <p class="intro-text">
+        With deep gratitude and reverence, we welcome you to the Sacred Healing Companion & Journey Hub. 
+        Your decision to embark on this path of healing and self-discovery is a sacred act of courage and love for yourself.
+      </p>
+      
+      <div class="wisdom-quote">
+        "The wound is the place where the Light enters you." — Rumi
+      </div>
+      
+      <p>
+        Your healing journey is uniquely yours, guided by your inner wisdom and supported by our compassionate community. 
+        We are honored to walk alongside you as you explore the depths of your being and discover the healing that awaits within.
+      </p>
+      
+      <div class="journey-features">
+        <h3>Your Sacred Toolkit Includes:</h3>
+        <ul class="feature-list">
+          <li><strong>Personal Healing Companion:</strong> An AI guide attuned to spiritual wisdom and healing practices</li>
+          <li><strong>Gentle Email Guidance:</strong> Weekly messages with meditation prompts, healing insights, and spiritual nourishment</li>
+          <li><strong>Sacred Reflection Space:</strong> Private journaling opportunities at meaningful milestones</li>
+          <li><strong>Healing Community:</strong> Connection with others on similar paths of transformation</li>
+          <li><strong>Personalized Journey:</strong> Content adapted to your unique healing goals and fasting experience</li>
+        </ul>
+      </div>
+      
+      <div class="cta-section">
+        <p><strong>Ready to begin your conversation with your Sacred Healing Companion?</strong></p>
+        <p>Your personal guide is waiting to support you with wisdom, compassion, and practical guidance tailored to your journey.</p>
+        <a href="{{chatbotUrl}}" class="cta-button">Begin Your Sacred Conversation</a>
+      </div>
+      
+      <p>
+        Remember, dear soul, that healing is not a destination but a sacred journey of becoming. 
+        Trust in your body's innate wisdom, honor your emotions as messengers, and approach each day with gentle compassion for yourself.
+      </p>
+      
+      <div class="wisdom-quote">
+        "Your task is not to seek for love, but merely to seek and find all the barriers within yourself that you have built against it." — Rumi
+      </div>
+      
+      <p>
+        We encourage you to move at your own pace, listen deeply to your inner voice, and remember that every step forward—no matter how small—is a victory worth celebrating.
+      </p>
+      
+      <div class="signature">
+        <p>With infinite love and healing light,</p>
+        <p><strong>The Sacred Healing Team</strong></p>
+        <p><em>Guardians of your journey, witnesses to your transformation</em></p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div class="social-links">
+        <a href="{{websiteUrl}}" title="Visit our website">🌐</a>
+        <a href="{{supportUrl}}" title="Get support">💬</a>
+        <a href="{{communityUrl}}" title="Join our community">🤝</a>
+      </div>
+      
+      <p>
+        This email was sent to you because you joined the Sacred Healing Journey. 
+        Your privacy and spiritual sovereignty are sacred to us.
+      </p>
+      
+      <p>
+        If you need support or have questions, we're here for you at 
+        <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>
+      </p>
+      
+      <p>
+        To update your preferences or unsubscribe, 
+        <a href="{{unsubscribeUrl}}">click here</a>.
+      </p>
+      
+      <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">
+        Sacred Healing Companion & Journey Hub<br>
+        Nurturing transformation through technology and ancient wisdom
+      </p>
+    </div>
+  </div>
+</body>
+</html>

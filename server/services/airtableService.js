@@ -243,3 +243,223 @@ export async function processTypeformSubmission(formResponse) {
     throw new Error('Failed to process Typeform submission');
   }
 }
+
+/**
+ * Process a Google Forms submission and save user data
+ * @param {Object} formData - The Google Forms submission data
+ * @returns {Promise<Object>} - The saved user
+ */
+export async function processGoogleFormSubmission(formData) {
+  try {
+    const {
+      healingName,
+      email,
+      healingGoals,
+      fastingExperience,
+      emailConsent,
+      timestamp
+    } = formData;
+
+    // Validate required fields
+    if (!healingName || !email) {
+      throw new Error('Healing Name and Email are required fields');
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format');
+    }
+
+    // Check if user already exists by email first, then by healing name
+    let existingUser = await findUserByEmail(email);
+    if (!existingUser) {
+      existingUser = await findUserByHealingName(healingName);
+    }
+
+    const userData = {
+      'Healing Name': healingName,
+      'Email': email,
+      'Healing Goals': healingGoals || '',
+      'Fasting Experience': fastingExperience || '',
+      'Email Consent': emailConsent || false,
+      'Registration Source': 'Google Forms',
+      'Last Updated': new Date().toISOString()
+    };
+
+    if (existingUser && existingUser.id) {
+      // Update existing user
+      await usersTable.update(existingUser.id, userData);
+
+      console.log(`Updated existing user: ${healingName} (${email})`);
+
+      return {
+        id: existingUser.id,
+        healingName,
+        email,
+        healingGoals,
+        fastingExperience,
+        emailConsent,
+        updated: true,
+        timestamp: userData['Last Updated']
+      };
+    } else {
+      // Create new user
+      userData['Registration Date'] = timestamp || new Date().toISOString();
+      userData['Journey Status'] = 'Active';
+      userData['Onboarding Stage'] = 'Welcome Email Sent';
+
+      const newUser = await usersTable.create(userData);
+
+      console.log(`Created new user: ${healingName} (${email})`);
+
+      return {
+        id: newUser.id,
+        healingName,
+        email,
+        healingGoals,
+        fastingExperience,
+        emailConsent,
+        created: true,
+        timestamp: userData['Registration Date']
+      };
+    }
+  } catch (error) {
+    console.error('Google Forms processing error:', error);
+    throw new Error(`Failed to process Google Forms submission: ${error.message}`);
+  }
+}
+
+/**
+ * Find a user by their email address
+ * @param {string} email - The user's email address
+ * @returns {Promise<Object|null>} - The user record or null
+ */
+export async function findUserByEmail(email) {
+  try {
+    if (!email) {
+      return null;
+    }
+
+    const records = await usersTable.select({
+      filterByFormula: `{Email} = '${email.replace(/'/g, "\\'")}'`,
+      maxRecords: 1
+    }).firstPage();
+
+    if (records && records.length > 0) {
+      return {
+        id: records[0].id,
+        ...records[0].fields
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Airtable error finding user by email:', error);
+    return null;
+  }
+}
+
+/**
+ * Update user onboarding stage
+ * @param {string} userId - The user's ID
+ * @param {string} stage - The new onboarding stage
+ * @returns {Promise<Object>} - The updated user
+ */
+export async function updateUserOnboardingStage(userId, stage) {
+  try {
+    if (!userId || !stage) {
+      throw new Error('User ID and stage are required');
+    }
+
+    const updatedUser = await usersTable.update(userId, {
+      'Onboarding Stage': stage,
+      'Last Updated': new Date().toISOString()
+    });
+
+    return {
+      id: updatedUser.id,
+      onboardingStage: updatedUser.fields['Onboarding Stage'],
+      lastUpdated: updatedUser.fields['Last Updated']
+    };
+  } catch (error) {
+    console.error('Error updating user onboarding stage:', error);
+    throw new Error('Failed to update user onboarding stage');
+  }
+}
+
+/**
+ * Get user journey analytics
+ * @param {string} userId - The user's ID (optional)
+ * @returns {Promise<Object>} - Journey analytics data
+ */
+export async function getUserJourneyAnalytics(userId = null) {
+  try {
+    let filterFormula = '';
+    if (userId) {
+      filterFormula = `RECORD_ID() = '${userId}'`;
+    }
+
+    const users = await usersTable.select({
+      filterByFormula: filterFormula,
+      fields: [
+        'Healing Name',
+        'Email',
+        'Registration Date',
+        'Registration Source',
+        'Onboarding Stage',
+        'Journey Status',
+        'Last Updated'
+      ]
+    }).all();
+
+    const analytics = {
+      totalUsers: users.length,
+      registrationSources: {},
+      onboardingStages: {},
+      journeyStatuses: {},
+      recentRegistrations: []
+    };
+
+    users.forEach(user => {
+      const fields = user.fields;
+
+      // Count registration sources
+      const source = fields['Registration Source'] || 'Unknown';
+      analytics.registrationSources[source] = (analytics.registrationSources[source] || 0) + 1;
+
+      // Count onboarding stages
+      const stage = fields['Onboarding Stage'] || 'Not Started';
+      analytics.onboardingStages[stage] = (analytics.onboardingStages[stage] || 0) + 1;
+
+      // Count journey statuses
+      const status = fields['Journey Status'] || 'Unknown';
+      analytics.journeyStatuses[status] = (analytics.journeyStatuses[status] || 0) + 1;
+
+      // Add to recent registrations (last 30 days)
+      const regDate = new Date(fields['Registration Date']);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      if (regDate >= thirtyDaysAgo) {
+        analytics.recentRegistrations.push({
+          id: user.id,
+          healingName: fields['Healing Name'],
+          email: fields['Email'],
+          registrationDate: fields['Registration Date'],
+          source: source
+        });
+      }
+    });
+
+    // Sort recent registrations by date (newest first)
+    analytics.recentRegistrations.sort((a, b) =>
+      new Date(b.registrationDate) - new Date(a.registrationDate)
+    );
+
+    return analytics;
+  } catch (error) {
+    console.error('Error getting user journey analytics:', error);
+    throw new Error('Failed to get user journey analytics');
+  }
+}

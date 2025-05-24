@@ -3,6 +3,7 @@ import { processTypeformSubmission } from '../services/airtableService.js';
 import { validateRequest, webhookRequestSchema } from '../middleware/validation.js';
 import { verifyTypeformSignature, rateLimit } from '../middleware/security.js';
 import { sendSuccessResponse, handleAndSendError } from '../utils/response-utils.js';
+import googleFormsWebhookRouter from './googleFormsWebhook.js';
 
 const router = express.Router();
 
@@ -29,5 +30,8 @@ router.post('/typeform',
     }
   }
 );
+
+// Mount Google Forms webhook routes
+router.use('/', googleFormsWebhookRouter);
 
 export default router;
