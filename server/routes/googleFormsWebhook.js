@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import crypto from 'crypto';
 import { processGoogleFormSubmission } from '../services/airtableService.js';
 import { addSubscriberToMailchimp } from '../services/mailchimpService.js';
+import { addFormSubmissionToSheets, getFormResponsesFromSheets, getSheetStatistics } from '../services/googleSheetsService.js';
 import { validateRequest, googleFormsWebhookSchema } from '../middleware/validation.js';
 import { rateLimit } from '../middleware/security.js';
 import { sendSuccessResponse, handleAndSendError } from '../utils/response-utils.js';
@@ -21,7 +22,17 @@ router.post('/google-forms',
     try {
       console.log('Received Google Forms webhook:', req.body);
 
-      // Process the Google Forms submission
+      // Save to Google Sheets first (primary data store)
+      let sheetsResult;
+      try {
+        sheetsResult = await addFormSubmissionToSheets(req.body);
+        console.log('Form submission saved to Google Sheets successfully');
+      } catch (sheetsError) {
+        console.error('Google Sheets error:', sheetsError);
+        // Continue processing even if Sheets fails
+      }
+
+      // Process the Google Forms submission in Airtable
       const result = await processGoogleFormSubmission(req.body);
 
       // Add user to Mailchimp if email consent was given
@@ -41,8 +52,9 @@ router.post('/google-forms',
       }
 
       return sendSuccessResponse(res, {
-        message: 'Google Forms webhook processed successfully',
-        user: result
+        message: 'Form submission processed successfully',
+        user: result,
+        sheetsUpdated: !!sheetsResult?.success
       });
     } catch (error) {
       console.error('Google Forms webhook error:', error);
@@ -53,7 +65,7 @@ router.post('/google-forms',
 
 /**
  * @route GET /api/webhook/google-forms/responses
- * @desc Fetch recent Google Forms responses (for manual processing)
+ * @desc Fetch recent Google Forms responses from Google Sheets
  * @access Private (requires API key)
  */
 router.get('/google-forms/responses',
@@ -66,8 +78,13 @@ router.get('/google-forms/responses',
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const responses = await fetchGoogleFormsResponses();
-      
+      const { limit, startDate, endDate } = req.query;
+      const responses = await getFormResponsesFromSheets({
+        limit: limit ? parseInt(limit) : 100,
+        startDate,
+        endDate
+      });
+
       return sendSuccessResponse(res, {
         message: 'Google Forms responses fetched successfully',
         responses: responses,
@@ -75,6 +92,34 @@ router.get('/google-forms/responses',
       });
     } catch (error) {
       console.error('Error fetching Google Forms responses:', error);
+      return handleAndSendError(res, error);
+    }
+  }
+);
+
+/**
+ * @route GET /api/webhook/google-forms/stats
+ * @desc Get Google Sheets statistics
+ * @access Private (requires API key)
+ */
+router.get('/google-forms/stats',
+  rateLimit({ maxRequests: 10, windowMs: 60 * 1000 }),
+  async (req, res) => {
+    try {
+      // Verify API key
+      const apiKey = req.headers['x-api-key'];
+      if (!apiKey || apiKey !== process.env.INTERNAL_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const stats = await getSheetStatistics();
+
+      return sendSuccessResponse(res, {
+        message: 'Google Sheets statistics retrieved successfully',
+        stats: stats
+      });
+    } catch (error) {
+      console.error('Error getting Google Sheets statistics:', error);
       return handleAndSendError(res, error);
     }
   }
@@ -104,7 +149,7 @@ async function fetchGoogleFormsResponses() {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     // Fetch data from the Google Sheet
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,

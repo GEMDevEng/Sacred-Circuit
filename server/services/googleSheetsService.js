@@ -4,15 +4,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Google Sheets configuration
-const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.GOOGLE_SHEETS_ID;
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive.file'];
 
 // Sheet names
 const SHEETS = {
   USERS: 'Users',
   REFLECTIONS: 'Reflections',
   CONVERSATIONS: 'Conversations',
-  FEEDBACK: 'Feedback'
+  FEEDBACK: 'Feedback',
+  FORM_RESPONSES: 'Form Responses 1' // For embedded form submissions
 };
 
 // Column mappings for each sheet
@@ -56,63 +57,22 @@ const COLUMNS = {
     TIMESTAMP: 'G',
     CLIENT_IP: 'H',
     USER_AGENT: 'I'
+  },
+  FORM_RESPONSES: {
+    TIMESTAMP: 'A',
+    EMAIL: 'B',
+    HEALING_NAME: 'C',
+    HEALING_GOALS: 'D',
+    FASTING_EXPERIENCE: 'E',
+    EMAIL_CONSENT: 'F',
+    SOURCE: 'G',
+    VARIANT: 'H'
   }
 };
 
 // Initialize Google Sheets API
 let sheets;
 let auth;
-
-/**
- * Initialize Google Sheets authentication
- */
-async function initializeAuth() {
-  try {
-    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-      console.warn('Google Sheets credentials not found, using mock mode');
-      return null;
-    }
-
-    // Decode the private key from base64
-    const privateKey = Buffer.from(process.env.GOOGLE_PRIVATE_KEY, 'base64').toString('utf-8');
-
-    auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: privateKey,
-      },
-      scopes: SCOPES,
-    });
-
-    sheets = google.sheets({ version: 'v4', auth });
-
-    // Test the connection
-    await testConnection();
-
-    console.log('Google Sheets API initialized successfully');
-    return sheets;
-  } catch (error) {
-    console.error('Failed to initialize Google Sheets API:', error.message);
-    return null;
-  }
-}
-
-/**
- * Test the Google Sheets connection
- */
-async function testConnection() {
-  if (!sheets || !SPREADSHEET_ID) {
-    throw new Error('Google Sheets not initialized or spreadsheet ID missing');
-  }
-
-  try {
-    await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-    });
-  } catch (error) {
-    throw new Error(`Failed to connect to Google Sheets: ${error.message}`);
-  }
-}
 
 /**
  * Create mock functions for development/testing
@@ -168,8 +128,105 @@ const createMockService = () => ({
     healingName: 'Mock User',
     email: 'mock@example.com',
     created: true
+  }),
+
+  // Form submissions (from feature branch)
+  addFormSubmissionToSheets: async (formData) => ({
+    success: true,
+    updatedRows: 1,
+    updatedRange: 'Form Responses 1!A2:H2',
+    rowData: [
+      formData.timestamp || new Date().toISOString(),
+      formData.email,
+      formData.healingName,
+      formData.healingGoals || '',
+      formData.fastingExperience || '',
+      formData.emailConsent ? 'Yes' : 'No',
+      formData.source || 'embedded_form',
+      formData.variant || 'unknown'
+    ]
+  }),
+  getFormResponsesFromSheets: async () => [],
+  getSheetStatistics: async () => ({
+    totalResponses: 0,
+    emailConsentCount: 0,
+    sourceBreakdown: {},
+    variantBreakdown: {},
+    recentResponses: []
   })
 });
+
+/**
+ * Test the Google Sheets connection
+ */
+async function testConnection() {
+  if (!sheets || !SPREADSHEET_ID) {
+    throw new Error('Google Sheets not initialized or spreadsheet ID missing');
+  }
+
+  try {
+    await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+    });
+  } catch (error) {
+    throw new Error(`Failed to connect to Google Sheets: ${error.message}`);
+  }
+}
+
+/**
+ * Initialize authentication with support for multiple credential formats
+ */
+async function initializeAuthWithFallback() {
+  try {
+    // Try the main branch format first (base64 encoded)
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+      const privateKey = Buffer.from(process.env.GOOGLE_PRIVATE_KEY, 'base64').toString('utf-8');
+
+      auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+          private_key: privateKey,
+        },
+        scopes: SCOPES,
+      });
+
+      sheets = google.sheets({ version: 'v4', auth });
+      await testConnection();
+      console.log('Google Sheets API initialized successfully (main format)');
+      return sheets;
+    }
+
+    // Try the feature branch format (direct credentials)
+    if (process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_CLIENT_EMAIL) {
+      auth = new google.auth.GoogleAuth({
+        credentials: {
+          type: 'service_account',
+          project_id: process.env.GOOGLE_PROJECT_ID,
+          private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
+          private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          client_email: process.env.GOOGLE_CLIENT_EMAIL,
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+          token_uri: 'https://oauth2.googleapis.com/token',
+          auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+          client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.GOOGLE_CLIENT_EMAIL}`
+        },
+        scopes: SCOPES
+      });
+
+      sheets = google.sheets({ version: 'v4', auth });
+      await testConnection();
+      console.log('Google Sheets API initialized successfully (feature format)');
+      return sheets;
+    }
+
+    console.warn('Google Sheets credentials not found, using mock mode');
+    return null;
+  } catch (error) {
+    console.error('Failed to initialize Google Sheets API:', error.message);
+    return null;
+  }
+}
 
 /**
  * Generate a unique ID for new records
@@ -197,63 +254,172 @@ async function getNextRow(sheetName) {
 }
 
 /**
- * Initialize sheets with headers if they don't exist
+ * Add a form submission to Google Sheets
+ * @param {Object} formData - The form submission data
+ * @returns {Promise<Object>} - The result of the append operation
  */
-async function initializeSheets() {
-  if (!sheets) return;
+export async function addFormSubmissionToSheets(formData) {
+  if (!sheets) {
+    return createMockService().addFormSubmissionToSheets(formData);
+  }
 
   try {
-    // Check if sheets exist and create headers
-    const spreadsheet = await sheets.spreadsheets.get({
+    const {
+      healingName,
+      email,
+      healingGoals,
+      fastingExperience,
+      emailConsent,
+      timestamp,
+      source,
+      variant
+    } = formData;
+
+    // Prepare the row data
+    const rowData = [
+      timestamp || new Date().toISOString(),
+      email,
+      healingName,
+      healingGoals || '',
+      fastingExperience || '',
+      emailConsent ? 'Yes' : 'No',
+      source || 'embedded_form',
+      variant || 'unknown'
+    ];
+
+    // Append to the sheet
+    const response = await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEETS.FORM_RESPONSES}!A:H`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      resource: {
+        values: [rowData]
+      }
     });
 
-    const existingSheets = spreadsheet.data.sheets.map(sheet => sheet.properties.title);
+    console.log(`Added form submission to Google Sheets: ${email}`);
 
-    // Create headers for each sheet if they don't exist
-    const sheetHeaders = {
-      [SHEETS.USERS]: ['ID', 'Healing Name', 'Email', 'Password Hash', 'Role', 'Registration Date', 'Journey Status', 'Email Consent', 'Healing Goals', 'Last Updated'],
-      [SHEETS.REFLECTIONS]: ['ID', 'User ID', 'Healing Name', 'Reflection Text', 'Journey Day', 'Email Consent', 'Timestamp'],
-      [SHEETS.CONVERSATIONS]: ['ID', 'User ID', 'Healing Name', 'User Message', 'AI Response', 'Timestamp'],
-      [SHEETS.FEEDBACK]: ['ID', 'Type', 'Title', 'Description', 'Email', 'Status', 'Timestamp', 'Client IP', 'User Agent']
+    return {
+      success: true,
+      updatedRows: response.data.updates?.updatedRows || 1,
+      updatedRange: response.data.updates?.updatedRange,
+      rowData: rowData
     };
+  } catch (error) {
+    console.error('Error adding form submission to Google Sheets:', error);
+    throw new Error(`Failed to add form submission to Google Sheets: ${error.message}`);
+  }
+}
 
-    for (const [sheetName, headers] of Object.entries(sheetHeaders)) {
-      if (!existingSheets.includes(sheetName)) {
-        // Create the sheet
-        await sheets.spreadsheets.batchUpdate({
-          spreadsheetId: SPREADSHEET_ID,
-          resource: {
-            requests: [{
-              addSheet: {
-                properties: {
-                  title: sheetName
-                }
-              }
-            }]
-          }
-        });
-      }
+/**
+ * Get form responses from Google Sheets
+ * @param {Object} options - Query options
+ * @returns {Promise<Array>} - Array of form responses
+ */
+export async function getFormResponsesFromSheets(options = {}) {
+  if (!sheets) {
+    return createMockService().getFormResponsesFromSheets(options);
+  }
 
-      // Add headers if the sheet is empty
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${sheetName}!1:1`,
+  try {
+    const {
+      limit = 100,
+      startDate,
+      endDate
+    } = options;
+
+    // Get data from the sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEETS.FORM_RESPONSES}!A:H`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return [];
+    }
+
+    // Skip header row and process responses
+    const headers = rows[0];
+    const responses = rows.slice(1).map((row, index) => {
+      const response = {
+        rowNumber: index + 2, // +2 because we skip header and arrays are 0-indexed
+      };
+
+      headers.forEach((header, colIndex) => {
+        response[header] = row[colIndex] || '';
       });
 
-      if (!response.data.values || response.data.values.length === 0) {
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!1:1`,
-          valueInputOption: 'RAW',
-          resource: {
-            values: [headers]
-          }
-        });
-      }
+      return response;
+    });
+
+    // Filter by date if specified
+    let filteredResponses = responses;
+    if (startDate || endDate) {
+      filteredResponses = responses.filter(response => {
+        const responseDate = new Date(response['Timestamp']);
+
+        if (startDate && responseDate < new Date(startDate)) {
+          return false;
+        }
+
+        if (endDate && responseDate > new Date(endDate)) {
+          return false;
+        }
+
+        return true;
+      });
     }
+
+    // Apply limit
+    if (limit && limit > 0) {
+      filteredResponses = filteredResponses.slice(0, limit);
+    }
+
+    return filteredResponses;
   } catch (error) {
-    console.error('Error initializing sheets:', error);
+    console.error('Error getting form responses from Google Sheets:', error);
+    throw new Error(`Failed to get form responses from Google Sheets: ${error.message}`);
+  }
+}
+
+/**
+ * Get sheet statistics
+ * @returns {Promise<Object>} - Sheet statistics
+ */
+export async function getSheetStatistics() {
+  if (!sheets) {
+    return createMockService().getSheetStatistics();
+  }
+
+  try {
+    const responses = await getFormResponsesFromSheets();
+
+    const stats = {
+      totalResponses: responses.length,
+      emailConsentCount: responses.filter(r => r['Email Consent'] === 'Yes').length,
+      sourceBreakdown: {},
+      variantBreakdown: {},
+      recentResponses: responses.slice(-10).reverse() // Last 10 responses
+    };
+
+    // Calculate source breakdown
+    responses.forEach(response => {
+      const source = response['Source'] || 'unknown';
+      stats.sourceBreakdown[source] = (stats.sourceBreakdown[source] || 0) + 1;
+    });
+
+    // Calculate variant breakdown
+    responses.forEach(response => {
+      const variant = response['Variant'] || 'unknown';
+      stats.variantBreakdown[variant] = (stats.variantBreakdown[variant] || 0) + 1;
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Error getting sheet statistics:', error);
+    throw new Error(`Failed to get sheet statistics: ${error.message}`);
   }
 }
 
@@ -342,48 +508,6 @@ export async function findUserById(userId) {
 }
 
 /**
- * Find a user by their email
- * @param {string} email - The user's email
- * @returns {Promise<Object|null>} - The user record or null
- */
-export async function findUserByEmail(email) {
-  if (!sheets) return null;
-
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.USERS}!A:J`,
-    });
-
-    const rows = response.data.values || [];
-
-    // Skip header row
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row[2] === email) { // Email is in column C (index 2)
-        return {
-          id: row[0],
-          healingName: row[1],
-          email: row[2],
-          passwordHash: row[3],
-          role: row[4] || 'user',
-          registrationDate: row[5],
-          journeyStatus: row[6],
-          emailConsent: row[7] === 'true',
-          healingGoals: row[8],
-          lastUpdated: row[9]
-        };
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Error finding user by email:', error);
-    return null;
-  }
-}
-
-/**
  * Create a new user
  * @param {Object} userData - The user data
  * @returns {Promise<Object>} - The created user
@@ -435,465 +559,86 @@ export async function createUser(userData) {
 }
 
 /**
- * Update an existing user
- * @param {string} userId - The user's ID
- * @param {Object} updateData - The data to update
- * @returns {Promise<Object>} - The updated user
+ * Initialize sheets with headers if they don't exist
  */
-export async function updateUser(userId, updateData) {
-  if (!sheets) {
-    return createMockService().updateUser(userId, updateData);
-  }
+async function initializeSheets() {
+  if (!sheets) return;
 
   try {
-    const response = await sheets.spreadsheets.values.get({
+    // Check if sheets exist and create headers
+    const spreadsheet = await sheets.spreadsheets.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.USERS}!A:J`,
     });
 
-    const rows = response.data.values || [];
-    let rowIndex = -1;
+    const existingSheets = spreadsheet.data.sheets.map(sheet => sheet.properties.title);
 
-    // Find the user row
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === userId) {
-        rowIndex = i + 1; // +1 because sheets are 1-indexed
-        break;
-      }
-    }
-
-    if (rowIndex === -1) {
-      throw new Error('User not found');
-    }
-
-    const currentRow = rows[rowIndex - 1];
-    const timestamp = new Date().toISOString();
-
-    // Update the row with new data
-    const updatedRow = [
-      currentRow[0], // ID (unchanged)
-      updateData.healingName || currentRow[1],
-      updateData.email || currentRow[2],
-      updateData.passwordHash || currentRow[3],
-      updateData.role || currentRow[4],
-      currentRow[5], // Registration date (unchanged)
-      updateData.journeyStatus || currentRow[6],
-      updateData.emailConsent !== undefined ? (updateData.emailConsent ? 'true' : 'false') : currentRow[7],
-      updateData.healingGoals || currentRow[8],
-      timestamp // Last updated
-    ];
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.USERS}!A${rowIndex}:J${rowIndex}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: [updatedRow]
-      }
-    });
-
-    return {
-      id: userId,
-      healingName: updatedRow[1],
-      email: updatedRow[2],
-      role: updatedRow[4],
-      updated: true
+    // Create headers for each sheet if they don't exist
+    const sheetHeaders = {
+      [SHEETS.USERS]: ['ID', 'Healing Name', 'Email', 'Password Hash', 'Role', 'Registration Date', 'Journey Status', 'Email Consent', 'Healing Goals', 'Last Updated'],
+      [SHEETS.REFLECTIONS]: ['ID', 'User ID', 'Healing Name', 'Reflection Text', 'Journey Day', 'Email Consent', 'Timestamp'],
+      [SHEETS.CONVERSATIONS]: ['ID', 'User ID', 'Healing Name', 'User Message', 'AI Response', 'Timestamp'],
+      [SHEETS.FEEDBACK]: ['ID', 'Type', 'Title', 'Description', 'Email', 'Status', 'Timestamp', 'Client IP', 'User Agent'],
+      [SHEETS.FORM_RESPONSES]: ['Timestamp', 'Email Address', 'Healing Name', 'Healing Goals', 'Fasting Experience', 'Email Consent', 'Source', 'Variant']
     };
-  } catch (error) {
-    console.error('Error updating user:', error);
-    throw new Error('Failed to update user');
-  }
-}
 
-/**
- * Save a user reflection to Google Sheets
- * @param {Object} reflectionData - The reflection data
- * @returns {Promise<Object>} - The saved reflection
- */
-export async function saveReflection(reflectionData) {
-  if (!sheets) {
-    return createMockService().saveReflection(reflectionData);
-  }
-
-  try {
-    const { healingName, reflectionText, journeyDay, emailConsent, userId } = reflectionData;
-    const id = generateId();
-    const timestamp = new Date().toISOString();
-
-    const row = [
-      id,
-      userId || '',
-      healingName,
-      reflectionText,
-      journeyDay || 'Not specified',
-      emailConsent ? 'true' : 'false',
-      timestamp
-    ];
-
-    const nextRow = await getNextRow(SHEETS.REFLECTIONS);
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.REFLECTIONS}!A${nextRow}:G${nextRow}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: [row]
+    for (const [sheetName, headers] of Object.entries(sheetHeaders)) {
+      if (!existingSheets.includes(sheetName)) {
+        // Create the sheet
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          resource: {
+            requests: [{
+              addSheet: {
+                properties: {
+                  title: sheetName
+                }
+              }
+            }]
+          }
+        });
       }
-    });
 
-    return {
-      id,
-      healingName,
-      journeyDay: journeyDay || 'Not specified',
-      timestamp,
-      success: true
-    };
-  } catch (error) {
-    console.error('Error saving reflection:', error);
-    throw new Error('Failed to save reflection');
-  }
-}
+      // Add headers if the sheet is empty
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${sheetName}!1:1`,
+      });
 
-/**
- * Get reflections by healing name
- * @param {string} healingName - The user's healing name
- * @returns {Promise<Array>} - Array of reflection records
- */
-export async function getReflectionsByHealingName(healingName) {
-  if (!sheets) return [];
-
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.REFLECTIONS}!A:G`,
-    });
-
-    const rows = response.data.values || [];
-    const reflections = [];
-
-    // Skip header row
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row[2] === healingName) { // Healing Name is in column C (index 2)
-        reflections.push({
-          id: row[0],
-          healingName: row[2],
-          content: row[3],
-          journeyDay: row[4],
-          createdAt: row[6]
+      if (!response.data.values || response.data.values.length === 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${sheetName}!1:1`,
+          valueInputOption: 'RAW',
+          resource: {
+            values: [headers]
+          }
         });
       }
     }
-
-    // Sort by timestamp (newest first)
-    return reflections.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } catch (error) {
-    console.error('Error getting reflections by healing name:', error);
-    return [];
+    console.error('Error initializing sheets:', error);
   }
 }
 
 /**
- * Get reflections by user ID
- * @param {string} userId - The user's ID
- * @returns {Promise<Array>} - Array of reflection records
+ * Initialize Google Sheets with proper headers
+ * @returns {Promise<Object>} - The initialization result
  */
-export async function getReflectionsByUserId(userId) {
-  if (!sheets) return [];
-
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.REFLECTIONS}!A:G`,
-    });
-
-    const rows = response.data.values || [];
-    const reflections = [];
-
-    // Skip header row
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row[1] === userId) { // User ID is in column B (index 1)
-        reflections.push({
-          id: row[0],
-          healingName: row[2],
-          content: row[3],
-          journeyDay: row[4],
-          createdAt: row[6]
-        });
-      }
-    }
-
-    // Sort by timestamp (newest first)
-    return reflections.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  } catch (error) {
-    console.error('Error getting reflections by user ID:', error);
-    return [];
-  }
-}
-
-/**
- * Store a conversation in Google Sheets
- * @param {Object} conversationData - The conversation data
- * @returns {Promise<Object>} - The stored conversation
- */
-export async function storeConversation(conversationData) {
+export async function initializeGoogleSheets() {
   if (!sheets) {
-    return createMockService().storeConversation(conversationData);
+    return createMockService().initializeGoogleSheets();
   }
 
   try {
-    const { healingName, userMessage, aiResponse, timestamp, userId } = conversationData;
-    const id = generateId();
-
-    const row = [
-      id,
-      userId || '',
-      healingName,
-      userMessage,
-      aiResponse,
-      timestamp || new Date().toISOString()
-    ];
-
-    const nextRow = await getNextRow(SHEETS.CONVERSATIONS);
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.CONVERSATIONS}!A${nextRow}:F${nextRow}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: [row]
-      }
-    });
+    await initializeSheets();
 
     return {
-      id,
-      healingName,
-      timestamp: timestamp || new Date().toISOString(),
-      success: true
+      success: true,
+      message: 'Google Sheets initialized successfully'
     };
   } catch (error) {
-    console.error('Error storing conversation:', error);
-    throw new Error('Failed to store conversation');
-  }
-}
-
-/**
- * Save feedback to Google Sheets
- * @param {Object} feedbackData - The feedback data
- * @returns {Promise<Object>} - The saved feedback
- */
-export async function saveFeedback(feedbackData) {
-  if (!sheets) {
-    return createMockService().saveFeedback(feedbackData);
-  }
-
-  try {
-    const { type, title, description, email, clientIp, userAgent, timestamp } = feedbackData;
-    const id = generateId();
-
-    const row = [
-      id,
-      type,
-      title,
-      description,
-      email || '',
-      'New', // Default status
-      timestamp || new Date().toISOString(),
-      clientIp || '',
-      userAgent || ''
-    ];
-
-    const nextRow = await getNextRow(SHEETS.FEEDBACK);
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.FEEDBACK}!A${nextRow}:I${nextRow}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: [row]
-      }
-    });
-
-    return {
-      id,
-      type,
-      title,
-      description,
-      email,
-      status: 'New',
-      timestamp: timestamp || new Date().toISOString(),
-      success: true
-    };
-  } catch (error) {
-    console.error('Error saving feedback:', error);
-    throw new Error('Failed to save feedback');
-  }
-}
-
-/**
- * Get all feedback with optional filters
- * @param {Object} options - Filter options
- * @returns {Promise<Array>} - Array of feedback records
- */
-export async function getAllFeedback(options = {}) {
-  if (!sheets) return [];
-
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.FEEDBACK}!A:I`,
-    });
-
-    const rows = response.data.values || [];
-    const feedback = [];
-
-    // Skip header row
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const feedbackItem = {
-        id: row[0],
-        type: row[1],
-        title: row[2],
-        description: row[3],
-        email: row[4],
-        status: row[5],
-        timestamp: row[6],
-        clientIp: row[7],
-        userAgent: row[8]
-      };
-
-      // Apply filters
-      if (options.status && feedbackItem.status !== options.status) continue;
-      if (options.type && feedbackItem.type !== options.type) continue;
-
-      feedback.push(feedbackItem);
-    }
-
-    // Sort by timestamp (newest first)
-    return feedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  } catch (error) {
-    console.error('Error getting all feedback:', error);
-    return [];
-  }
-}
-
-/**
- * Update feedback status
- * @param {string} feedbackId - The feedback ID
- * @param {string} status - The new status
- * @returns {Promise<Object>} - The updated feedback
- */
-export async function updateFeedbackStatus(feedbackId, status) {
-  if (!sheets) {
-    return createMockService().updateFeedbackStatus(feedbackId, status);
-  }
-
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.FEEDBACK}!A:I`,
-    });
-
-    const rows = response.data.values || [];
-    let rowIndex = -1;
-
-    // Find the feedback row
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === feedbackId) {
-        rowIndex = i + 1; // +1 because sheets are 1-indexed
-        break;
-      }
-    }
-
-    if (rowIndex === -1) {
-      throw new Error('Feedback not found');
-    }
-
-    const currentRow = rows[rowIndex - 1];
-
-    // Update only the status column (F)
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.FEEDBACK}!F${rowIndex}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: [[status]]
-      }
-    });
-
-    return {
-      id: feedbackId,
-      type: currentRow[1],
-      title: currentRow[2],
-      description: currentRow[3],
-      email: currentRow[4],
-      status: status,
-      timestamp: currentRow[6],
-      updated: true
-    };
-  } catch (error) {
-    console.error('Error updating feedback status:', error);
-    throw new Error('Failed to update feedback status');
-  }
-}
-
-/**
- * Process a Typeform submission and save user data
- * @param {Object} formResponse - The Typeform form response
- * @returns {Promise<Object>} - The saved user
- */
-export async function processTypeformSubmission(formResponse) {
-  if (!sheets) {
-    return createMockService().processTypeformSubmission(formResponse);
-  }
-
-  try {
-    const answers = formResponse.answers;
-
-    // Extract data from Typeform answers
-    const healingName = answers.find(a => a.field.ref === 'healing_name')?.text || '';
-    const email = answers.find(a => a.field.ref === 'email')?.email || '';
-    const healingGoals = answers.find(a => a.field.ref === 'healing_goals')?.text || '';
-    const emailConsent = answers.find(a => a.field.ref === 'email_consent')?.boolean || false;
-
-    // Check if user already exists
-    const existingUser = await findUserByHealingName(healingName);
-
-    if (existingUser && existingUser.id) {
-      // Update existing user
-      const updatedUser = await updateUser(existingUser.id, {
-        email,
-        healingGoals,
-        emailConsent
-      });
-
-      return {
-        id: existingUser.id,
-        healingName,
-        email,
-        updated: true
-      };
-    } else {
-      // Create new user
-      const newUser = await createUser({
-        healingName,
-        email,
-        healingGoals,
-        emailConsent,
-        journeyStatus: 'Active'
-      });
-
-      return {
-        id: newUser.id,
-        healingName,
-        email,
-        created: true
-      };
-    }
-  } catch (error) {
-    console.error('Error processing Typeform submission:', error);
-    throw new Error('Failed to process Typeform submission');
+    console.error('Error initializing Google Sheets:', error);
+    throw new Error(`Failed to initialize Google Sheets: ${error.message}`);
   }
 }
 
@@ -904,7 +649,7 @@ export async function initializeGoogleSheetsService() {
   if (initialized) return;
 
   try {
-    await initializeAuth();
+    await initializeAuthWithFallback();
     if (sheets) {
       await initializeSheets();
     }
@@ -921,3 +666,14 @@ initializeGoogleSheetsService();
 
 // Export mock service for testing
 export const mockService = createMockService();
+
+export default {
+  addFormSubmissionToSheets,
+  getFormResponsesFromSheets,
+  getSheetStatistics,
+  findUserByHealingName,
+  findUserById,
+  createUser,
+  initializeGoogleSheets,
+  initializeGoogleSheetsService
+};

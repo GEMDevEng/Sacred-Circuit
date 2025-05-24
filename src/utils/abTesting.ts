@@ -51,7 +51,7 @@ class ABTestingService {
 
     // Use userId for consistent assignment, or generate session-based ID
     const userKey = userId || this.getSessionId();
-    
+
     // Check if user already has an assignment
     if (!this.userAssignments.has(userKey)) {
       this.userAssignments.set(userKey, new Map());
@@ -78,13 +78,13 @@ class ABTestingService {
   trackConversion(testName: string, eventType: string, userId?: string): void {
     const userKey = userId || this.getSessionId();
     const userTests = this.userAssignments.get(userKey);
-    
+
     if (!userTests || !userTests.has(testName)) {
       return; // User not in test
     }
 
     const variant = userTests.get(testName)!;
-    
+
     // Send tracking event
     this.sendTrackingEvent({
       testName,
@@ -109,7 +109,7 @@ class ABTestingService {
   getActiveTests(userId?: string): ABTestResult[] {
     const userKey = userId || this.getSessionId();
     const userTests = this.userAssignments.get(userKey);
-    
+
     if (!userTests) {
       return [];
     }
@@ -129,14 +129,14 @@ class ABTestingService {
       // Use weighted random assignment
       const random = this.hashToFloat(userKey + test.name);
       let cumulative = 0;
-      
+
       for (let i = 0; i < test.variants.length; i++) {
         cumulative += test.weights[i];
         if (random <= cumulative) {
           return test.variants[i];
         }
       }
-      
+
       return test.variants[test.variants.length - 1];
     } else {
       // Equal distribution
@@ -242,7 +242,7 @@ export const getVariant = (testName: string, userId?: string): string => {
   return abTesting.getVariant(testName, userId);
 };
 
-export const trackConversion = (testName: string, eventType: string, userId?: string): void => {
+export const trackConversion = (testName: string, eventType: string, userId?: string, metadata?: any): void => {
   abTesting.trackConversion(testName, eventType, userId);
 };
 
@@ -257,7 +257,7 @@ export const getActiveTests = (userId?: string): ABTestResult[] => {
 // React hook for A/B testing
 export const useABTest = (testName: string, userId?: string) => {
   const variant = getVariant(testName, userId);
-  
+
   const trackEvent = (eventType: string) => {
     trackConversion(testName, eventType, userId);
   };
